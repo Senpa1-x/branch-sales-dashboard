@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Claude Code local settings (เครื่องใครเครื่องมัน)
+.claude/settings.local.json
+
+# ค่าตั้งส่วนตัว — Sheet ID / รหัสสาขา ห้ามขึ้น GitHub
+MY-CONFIG.local.txt
+*.local.txt
+
+# ไฟล์ชั่วคราว
+*.log
+.venv/
+node_modules/
