@@ -12,3 +12,10 @@ MY-CONFIG.local.txt
 *.log
 .venv/
 node_modules/
+
+# Worker — ค่าลับและไฟล์ build
+worker/secrets.local.json
+worker/.wrangler/
+worker/node_modules/
+
+worker/.dev.vars

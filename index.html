@@ -409,14 +409,24 @@ const CFG_KEY = "dash-config-v1";
 // ค่าที่ผู้ใช้กรอก: {branch, am, sources:[{yy,title,sheetId}]}
 let CFG = { branch:"", am:"", sources:[] };
 
+let CFG_FROM_SERVER=false;
+
+function useCfg(o){
+  if(!o||!Array.isArray(o.sources)) return false;
+  const src=o.sources.filter(s=>s&&s.yy&&s.sheetId);
+  if(!src.length) return false;
+  CFG={ branch:String(o.branch||""), am:String(o.am||""), sources:src };
+  return true;
+}
 function loadCfg(){
+  // 1) ถ้าเสิร์ฟผ่าน Worker ที่มีรหัสผ่าน ตัว Worker จะฝัง config มาให้เลย
+  //    ไม่ต้องกรอกอะไร และไม่แตะ localStorage
+  if(window.__DASH_CFG && useCfg(window.__DASH_CFG)){ CFG_FROM_SERVER=true; return true; }
+  // 2) ไม่งั้นใช้ค่าที่ผู้ใช้เคยกรอกไว้ในเบราว์เซอร์นี้
   try{
     const raw=localStorage.getItem(CFG_KEY);
     if(!raw) return false;
-    const o=JSON.parse(raw);
-    if(!o||!Array.isArray(o.sources)||!o.sources.length) return false;
-    CFG={ branch:String(o.branch||""), am:String(o.am||""), sources:o.sources.filter(s=>s&&s.yy&&s.sheetId) };
-    return CFG.sources.length>0;
+    return useCfg(JSON.parse(raw));
   }catch(e){ return false; }
 }
 function saveCfg(){ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }
@@ -1286,7 +1296,14 @@ function resetAuto(){ if(autoTimer) clearInterval(autoTimer); if(SETTINGS.AUTO_R
 
 window.addEventListener("DOMContentLoaded",()=>{
   initTheme();
-  if(loadCfg()){ loadAll(); resetAuto(); }
+  const ok=loadCfg();
+  if(CFG_FROM_SERVER){
+    // config มาจาก Worker แล้ว — ไม่ต้องมีปุ่มตั้งค่า แต่ให้ออกจากระบบได้
+    const s=document.getElementById("btnSetup"); if(s) s.remove();
+    const f=document.querySelector(".foot");
+    if(f) f.insertAdjacentHTML("beforeend",' · <a href="/logout">ออกจากระบบ</a>');
+  }
+  if(ok){ loadAll(); resetAuto(); }
   else { showLoad(false); openSetup(true); }   // ยังไม่เคยตั้งค่า → ขึ้นหน้ากรอกก่อน
 });
 </script>

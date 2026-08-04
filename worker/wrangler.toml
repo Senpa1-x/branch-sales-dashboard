@@ -1,0 +1,14 @@
+name = "sales-dashboard"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# ดึงไฟล์ index.html ที่อยู่โฟลเดอร์บนเข้ามาเป็นข้อความ ตอน build
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+# ค่าลับทั้ง 3 ตัวไม่อยู่ในไฟล์นี้ ตั้งด้วย `wrangler secret put` แทน
+#   DASH_PASSWORD  รหัสผ่านที่ใช้เข้า
+#   COOKIE_SECRET  กุญแจสุ่มยาวๆ ไว้เซ็น cookie
+#   DASH_CONFIG    JSON ของรหัสสาขา + Sheet ID
