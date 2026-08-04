@@ -1,5 +1,7 @@
 # Dashboard ยอดขายรายสาขา
 
+**เปิดใช้งานได้เลยที่ → https://senpa1-x.github.io/branch-sales-dashboard/**
+
 Dashboard อ่านข้อมูลจาก Google Sheet ของคุณเอง แล้ว **แปลง Product เป็น Category ให้อัตโนมัติ**
 ไฟล์ HTML ไฟล์เดียวจบ ไม่ต้องติดตั้งอะไร ไม่มี backend
 
