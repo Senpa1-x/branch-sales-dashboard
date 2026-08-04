@@ -15,6 +15,8 @@ import DASHBOARD_HTML from "../../index.html";
 
 const COOKIE = "dash_auth";
 const MAX_AGE = 60 * 60 * 24 * 30;    // จำไว้ 30 วัน
+const MAX_MONTH = 12;
+const CACHE_TTL = 600;                // เก็บผลดึง Sheet ไว้ 10 นาที
 
 /* ---------- ลายเซ็น cookie (HMAC-SHA256) ---------- */
 const enc = new TextEncoder();
@@ -113,6 +115,83 @@ function injectConfig(html, configJson) {
                   : html.slice(0, i) + tag + html.slice(i);
 }
 
+/* =========================================================================
+   /api/sheets — Worker ดึง Google Sheet ทุกแท็บแทนเบราว์เซอร์ แล้วเก็บ cache ไว้
+   เบราว์เซอร์จึงยิงแค่ครั้งเดียว ไม่ต้องยิง 24 ครั้งทุกรอบ
+   ส่งกลับเป็น CSV ดิบ ไม่แปลงอะไร — ตรรกะแยกหมวดยังอยู่ฝั่งหน้าเว็บที่เดียว
+   ========================================================================= */
+function gvizUrl(sheetId, tab) {
+  return "https://docs.google.com/spreadsheets/d/" + sheetId +
+         "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(tab);
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Google อาจตอบ 429 เมื่อขอถี่ — ลองซ้ำแบบถอยห่างขึ้นเรื่อยๆ
+async function fetchTabText(sheetId, tab, tries = 3) {
+  let last = null;
+  for (let a = 0; a < tries; a++) {
+    if (a) await sleep(500 * a + Math.random() * 300);
+    let res;
+    try { res = await fetch(gvizUrl(sheetId, tab), { cf: { cacheTtl: 0 } }); }
+    catch (e) { last = e; continue; }
+    if (res.ok) {
+      const text = await res.text();
+      if (/^\s*</.test(text)) throw new Error("ได้ HTML แทน CSV — Sheet ยังไม่เปิดสิทธิ์สาธารณะ");
+      return text;
+    }
+    last = new Error("HTTP " + res.status);
+    if (res.status !== 429 && res.status < 500) throw last;
+  }
+  throw last;
+}
+
+async function apiSheets(request, env, ctx) {
+  let cfg = null;
+  try { cfg = JSON.parse(env.DASH_CONFIG || "null"); } catch (e) { /* ปล่อยเป็น null */ }
+  if (!cfg || !Array.isArray(cfg.sources) || !cfg.sources.length) {
+    return new Response(JSON.stringify({ ok: false, error: "DASH_CONFIG ไม่ถูกต้อง" }),
+      { status: 500, headers: { "Content-Type": "application/json; charset=utf-8" } });
+  }
+
+  const url = new URL(request.url);
+  const fresh = url.searchParams.get("fresh") === "1";
+  const cache = caches.default;
+  const cacheKey = new Request(url.origin + "/__cache/sheets", { method: "GET" });
+
+  // ส่งของใน cache กลับทันทีถ้ายังไม่หมดอายุ
+  if (!fresh) {
+    const hit = await cache.match(cacheKey);
+    if (hit) {
+      const body = await hit.text();
+      return new Response(body, {
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Cache": "HIT" }
+      });
+    }
+  }
+
+  const jobs = [];
+  for (const s of cfg.sources) {
+    for (let m = 1; m <= MAX_MONTH; m++) {
+      const tab = "เดือน " + m;
+      jobs.push(fetchTabText(s.sheetId, tab).then(
+        text => ({ yy: s.yy, m, tab, text }),
+        err  => ({ yy: s.yy, m, tab, error: String((err && err.message) || err) })
+      ));
+    }
+  }
+  const tabs = await Promise.all(jobs);
+  const body = JSON.stringify({ ok: true, fetchedAt: Date.now(), tabs });
+
+  // เก็บลง edge cache ไว้ให้ครั้งต่อไป
+  ctx.waitUntil(cache.put(cacheKey, new Response(body, {
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "max-age=" + CACHE_TTL }
+  })));
+
+  return new Response(body, {
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Cache": "MISS" }
+  });
+}
+
 function redirect(to, headers = {}) {
   return new Response(null, { status: 302, headers: { Location: to, ...headers } });
 }
@@ -121,7 +200,7 @@ function cookieHeader(value, maxAge) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const secret = env.COOKIE_SECRET;
     const password = env.DASH_PASSWORD;
@@ -163,6 +242,9 @@ export default {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }
       });
     }
+
+    // ผ่านแล้ว → ดึงข้อมูล Sheet ให้ (มี cache)
+    if (url.pathname === "/api/sheets") return apiSheets(request, env, ctx);
 
     // ผ่านแล้ว → ส่ง dashboard พร้อม config ที่ฝังไว้
     const cfg = env.DASH_CONFIG || "null";

@@ -581,14 +581,29 @@ function aggregateTab(text){
 }
 
 let loadSeq=0;   // กันการโหลดสองรอบทับกัน (กด Refresh รัวๆ / บันทึกตั้งค่าขณะกำลังโหลด)
+let lastFetchedAt=null;   // เวลาที่เซิร์ฟเวอร์ดึงข้อมูลจาก Google จริงๆ (โหมด Worker)
 
-async function loadAll(){
-  const mySeq=++loadSeq;
-  showLoad(true,"กำลังโหลดข้อมูล…");
-  const monthly={}, health=[], unmapped=[];
-  let anyError=null;
+/* ขอทีเดียวจาก Worker — ได้ CSV ดิบของทุกแท็บกลับมาในก้อนเดียว
+   คืน null ถ้าเรียกไม่สำเร็จ เพื่อให้ไปใช้วิธียิงเองแทน */
+async function fetchViaServer(fresh){
+  try{
+    const res=await fetch("/api/sheets"+(fresh?"?fresh=1":""),{cache:"no-store"});
+    if(!res.ok) return null;
+    const data=await res.json();
+    if(!data||!data.ok||!Array.isArray(data.tabs)) return null;
+    lastFetchedAt=data.fetchedAt||null;
+    // แปลงให้เป็นรูปเดียวกับที่ยิงเอง
+    return data.tabs.map(t=>{
+      const src=CFG.sources.find(s=>s.yy===t.yy)||{yy:t.yy,title:"ปี "+t.yy,sheetId:""};
+      return t.error ? {src,m:t.m,tab:t.tab,err:new Error(t.error)}
+                     : {src,m:t.m,tab:t.tab,text:t.text};
+    });
+  }catch(e){ return null; }
+}
 
-  // ยิงทุกแท็บของทุกปีพร้อมกัน แล้วค่อยประมวลผลตามลำดับ
+/* วิธีเดิม: เบราว์เซอร์ยิงเองทุกแท็บพร้อมกัน */
+async function fetchDirect(){
+  lastFetchedAt=null;
   const jobs=[];
   CFG.sources.forEach(src=>{
     for(let m=1;m<=SETTINGS.MAX_MONTH;m++){
@@ -596,7 +611,20 @@ async function loadAll(){
       jobs.push(fetchTab(src.sheetId,tab).then(text=>({src,m,tab,text}),err=>({src,m,tab,err})));
     }
   });
-  const settled=await Promise.all(jobs);
+  return Promise.all(jobs);
+}
+
+async function loadAll(fresh){
+  const mySeq=++loadSeq;
+  showLoad(true,"กำลังโหลดข้อมูล…");
+  const monthly={}, health=[], unmapped=[];
+  let anyError=null;
+
+  // บน Worker: ขอทีเดียว ให้เซิร์ฟเวอร์ดึงทุกแท็บให้ (มี cache ฝั่ง edge เร็วกว่ามาก)
+  // บน GitHub Pages หรือเปิดไฟล์ตรงๆ: ยิงเองทุกแท็บพร้อมกันเหมือนเดิม
+  let settled=null;
+  if(CFG_FROM_SERVER) settled=await fetchViaServer(fresh);
+  if(!settled)        settled=await fetchDirect();
   if(mySeq!==loadSeq) return;                      // มีรอบใหม่มาแล้ว ทิ้งผลรอบนี้
   const bySrc=new Map(CFG.sources.map(s=>[s.sheetId,[]]));
   settled.forEach(r=>bySrc.get(r.src.sheetId).push(r));
@@ -652,7 +680,10 @@ async function loadAll(){
     renderNotices(anyError); renderEmpty(); return;
   }
   setLive(HEALTH.length?"warn":"ok", HEALTH.length?("ข้อมูล "+PERIODS.length+" เดือน · มีข้อควรดู"):("ข้อมูลล่าสุด "+PERIODS.length+" เดือน"));
-  document.getElementById("lastUpd").textContent="อัปเดต "+new Date().toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"});
+  const stamp=lastFetchedAt?new Date(lastFetchedAt):new Date();
+  const age=lastFetchedAt?Math.round((Date.now()-lastFetchedAt)/60000):0;
+  document.getElementById("lastUpd").textContent=
+    "ข้อมูล ณ "+stamp.toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"})+(age>=1?(" ("+age+" นาทีที่แล้ว)"):"");
   buildMonthSelect(); renderNotices(null); renderAll();
 }
 
@@ -1287,7 +1318,7 @@ document.getElementById("cfgCancel").addEventListener("click",closeSetup);
 document.getElementById("cfgClear").addEventListener("click",clearSetup);
 document.getElementById("btnSetup").addEventListener("click",()=>openSetup(false));
 
-document.getElementById("btnRefresh").addEventListener("click",()=>{ loadAll(); resetAuto(); });
+document.getElementById("btnRefresh").addEventListener("click",()=>{ loadAll(true); resetAuto(); });
 document.getElementById("btnExport").addEventListener("click",exportCSV);
 document.getElementById("btnHealth").addEventListener("click",showHealth);
 document.getElementById("selMonth").addEventListener("change",e=>{ selMonth=e.target.value; renderAll(); });
