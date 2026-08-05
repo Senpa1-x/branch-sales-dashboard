@@ -481,13 +481,27 @@ const COL = { code:"Product (Code)", name:"Product (Name)", qty:"Number",
 
 /* =========================================================================
    ⭐ กฎแปลง Product → Category — ตัวแรกที่เข้าเงื่อนไขชนะ
+   -------------------------------------------------------------------------
+   หลักคิด: ถ้า "ชื่อสินค้า" บอกได้ว่าเป็นชิ้นส่วนอะไรของอุปกรณ์ไหน ให้เชื่อชื่อก่อน
+   เพราะ Sub Category ในข้อมูลต้นทางใส่ไม่สม่ำเสมอ — จอ iPhone ตัวเดียวกัน
+   บางแถวเป็น IPHONE DISPLAY บางแถวเป็น IOS-SUR / EX-IPHONE / APPLE SERVICE
+   ชื่อไหนไม่บอกอุปกรณ์ ค่อยตกไปใช้ Sub Category / Category ตามเดิม
    ========================================================================= */
 function mapCategory(cat, sub, prod){
   if(cat === "SERVICE" && sub === "ICARE")                                   return "Service Bill";
+  // ค่าบริการ นับเป็นรายได้งานบริการ ไม่ใช่ค่าอะไหล่ จึงต้องมาก่อนกฎที่ดูชื่อชิ้นส่วน
   if(cat === "APPLE SERVICE" && prod.includes("SERVICE FEE"))                return "Exchange";
+  if(cat.includes("APPLE CARE") || sub.includes("APPLE CARE"))               return "AC+";
+
+  // ── เชื่อชื่อสินค้าก่อน ──
+  // มีคำว่า DISPLAY: ถ้าระบุ iPhone ด้วย = จอ iPhone · ไม่ระบุ = จอ Mac (สีอย่าง
+  // Space Black / Starlight / MBA คือชื่อสี MacBook) ตรวจแล้วไม่มีจอ iPad/Watch ปนเลย
+  if(prod.includes("DISPLAY"))  return prod.includes("IPHONE") ? "iPhone Display" : "CPU";
+  if(prod.includes("IPHONE") && prod.includes("BATTERY"))                    return "iPhone Battery";
+
+  // ── ชื่อไม่บอก ค่อยดู Sub Category / Category ──
   if(cat === "APPLE SERVICE" && !sub.includes("BATTERY") && !sub.includes("CPU")
                              && !sub.includes("ICARE")   && !sub.includes("DISPLAY")) return "Exchange";
-  if(cat.includes("APPLE CARE") || sub.includes("APPLE CARE"))               return "AC+";
   if(cat.includes("BATTERY") || sub.includes("BATTERY") || prod.includes("BATTERY")) return "iPhone Battery";
   if(cat.includes("CPU")     || sub.includes("CPU"))                         return "CPU";
   if(cat.includes("DISPLAY") || sub.includes("DISPLAY"))                     return "iPhone Display";

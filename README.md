@@ -126,20 +126,34 @@ Worker ไปดึงทุกแท็บให้แล้วเก็บ cac
 
 ## 🏷️ กฎแปลง Product → Category
 
-ยกมาจากระบบต้นแบบ `MVP_Dashboard.html` ตรงตัว อยู่ที่ฟังก์ชัน `mapCategory()`
-อ่าน 3 คอลัมน์ (แปลงเป็นตัวพิมพ์ใหญ่ก่อน) แล้วไล่ตามลำดับ — **ตัวแรกที่เข้าเงื่อนไขชนะ**
+อยู่ที่ฟังก์ชัน `mapCategory()` อ่าน 3 คอลัมน์ (แปลงเป็นตัวพิมพ์ใหญ่ก่อน)
+แล้วไล่ตามลำดับ — **ตัวแรกที่เข้าเงื่อนไขชนะ**
+
+**หลักคิด:** ถ้าชื่อสินค้าบอกได้ว่าเป็นชิ้นส่วนอะไรของอุปกรณ์ไหน ให้เชื่อชื่อก่อน
+เพราะ Sub Category ในข้อมูลต้นทางใส่ไม่สม่ำเสมอ — จอ iPhone รุ่นเดียวกันบางแถวเป็น
+`IPHONE DISPLAY` บางแถวเป็น `IOS-SUR` / `EX-IPHONE` / `APPLE SERVICE`
+ชื่อไหนไม่บอกอุปกรณ์ ค่อยตกไปใช้ Sub Category / Category
 
 | # | เงื่อนไข | → หมวด |
 |---|---|---|
 | 1 | `Category = SERVICE` และ `SubCat = ICARE` | Service Bill |
-| 2 | `Category = APPLE SERVICE` และ Product มี `SERVICE FEE` | Exchange |
-| 3 | `Category = APPLE SERVICE` และ SubCat ไม่ใช่ BATTERY/CPU/ICARE/DISPLAY | Exchange |
-| 4 | มี `APPLE CARE` | AC+ |
-| 5 | มี `BATTERY` | iPhone Battery |
-| 6 | มี `CPU` | CPU |
-| 7 | มี `DISPLAY` | iPhone Display |
-| 8 | มี `FILM` | Film |
-| 9 | ไม่เข้าข้อไหนเลย | **ACC** |
+| 2 | `Category = APPLE SERVICE` และ Product มี `SERVICE FEE` | Exchange — เป็นค่าบริการ ไม่ใช่ค่าอะไหล่ |
+| 3 | มี `APPLE CARE` | AC+ |
+| 4 | **Product มี `DISPLAY` + มี `IPHONE`** | **iPhone Display** |
+| 5 | **Product มี `DISPLAY` แต่ไม่มี `IPHONE`** | **CPU** — เป็นจอ Mac |
+| 6 | Product มี `IPHONE` + `BATTERY` | iPhone Battery |
+| 7 | `Category = APPLE SERVICE` และ SubCat ไม่ใช่ BATTERY/CPU/ICARE/DISPLAY | Exchange |
+| 8 | มี `BATTERY` | iPhone Battery |
+| 9 | มี `CPU` | CPU |
+| 10 | มี `DISPLAY` | iPhone Display |
+| 11 | มี `FILM` | Film |
+| 12 | ไม่เข้าข้อไหนเลย | **ACC** |
+
+ข้อ 4-6 ดูจาก**ชื่อสินค้า** ข้อ 7-11 ดูจาก **Sub Category / Category**
+
+> **ทำไม `DISPLAY` ที่ไม่มี `IPHONE` ถึงเป็น CPU:** สแกนข้อมูลจริง 20 เดือนแล้ว
+> จอที่ไม่ใช่ iPhone เป็นจอ Mac ทั้งหมด (ชื่อลงท้ายด้วยสี MacBook อย่าง Space Black,
+> Starlight, Midnight หรือมี MBA) **ไม่มีจอ iPad / Watch / AirPods ปนเลยสักแถว**
 
 ### ตัวอย่างการจับคู่
 
@@ -154,6 +168,9 @@ APPLE SERVICE / EX-ACC · EX-IPAD · EX-WATCH · IOS-SUR · SPARE PART → Excha
 APPLE CARE    / APP FOR IPHONE · IPAD · MAC · WATCH · HEADPHONES   → AC+
 SERVICE       / ICARE           → Service Bill
 ```
+
+แต่ถ้าชื่อสินค้ามีคำว่า `DISPLAY` กฎข้อ 4-5 จะชนะ Sub Category เสมอ เช่น
+`Display, iPhone 17 Pro Max` ที่ Sub เป็น `IOS-SUR` ก็ยังเข้า iPhone Display
 
 ถ้าวันหนึ่งมีสินค้าใหม่ที่ไม่เข้ากฎ ระบบจะ **ขึ้นกล่องเหลืองเตือนพร้อมบอกคู่ Category/SubCategory
 ที่ตกหล่น** ให้เอาไปเพิ่มกฎได้ทันที
