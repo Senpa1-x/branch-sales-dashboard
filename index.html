@@ -58,6 +58,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:10
 select{padding:10px 36px 10px 14px;border:1px solid var(--border);border-radius:11px;background:var(--card);font-family:var(--font);font-size:.95rem;font-weight:600;color:var(--ink);cursor:pointer;-webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236e6e73' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
 select:focus{outline:none;border-color:var(--accent)}
+/* ช่องกรอกวันตัดยอดของเดือนที่ยังไม่จบ */
+.daybox{display:inline-flex;align-items:center;gap:8px;padding:5px 12px 5px 14px;border-radius:11px;
+  background:var(--accent-soft);border:1px solid transparent}
+.daybox label{font-size:.82rem;color:var(--ink-2);font-weight:600;margin:0;white-space:nowrap}
+.daybox input{width:58px;padding:7px 8px;border:1px solid var(--border);border-radius:9px;background:var(--card);
+  color:var(--ink);font-family:var(--font);font-size:.92rem;font-weight:700;text-align:center;-moz-appearance:textfield}
+.daybox input::-webkit-outer-spin-button,.daybox input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.daybox input:focus{outline:none;border-color:var(--accent)}
+.daybox.empty{border-color:var(--accent)}
+.daysuf{font-size:.78rem;color:var(--ink-3);white-space:nowrap}
 .btn{padding:9px 16px;border-radius:11px;font-family:var(--font);font-size:.85rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--ink-2);transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{color:var(--ink);border-color:var(--ink-3)}
 .btn.loading{opacity:.5;pointer-events:none}
@@ -68,6 +78,14 @@ select:focus{outline:none;border-color:var(--accent)}
 .hero-eyebrow{font-size:.82rem;color:var(--ink-2);font-weight:600;letter-spacing:.02em;margin-bottom:6px}
 .hero-value{font-size:3.6rem;font-weight:700;letter-spacing:-.035em;line-height:1;margin-bottom:4px}
 .hero-unit{font-size:.95rem;color:var(--ink-2);margin-bottom:20px}
+.runtag{display:inline-block;margin-left:9px;padding:2px 10px;border-radius:20px;background:var(--accent-soft);
+  color:var(--accent);font-size:.72rem;font-weight:700;vertical-align:middle}
+.hero-proj{margin:-12px 0 18px;line-height:1.5}
+.hero-proj .pj-label{font-size:.8rem;color:var(--ink-2);font-weight:600}
+.hero-proj .pj-value{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;color:var(--accent)}
+.hero-proj .pj-unit{font-size:.85rem;color:var(--ink-2)}
+.hero-proj .pj-note{display:block;font-size:.75rem;color:var(--ink-3);margin-top:2px}
+.hero-proj .pj-ask{display:block;font-size:.85rem;color:var(--accent);font-weight:600}
 .deltas{display:flex;gap:10px;flex-wrap:wrap}
 .delta{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:12px;font-size:.88rem;font-weight:600}
 .delta .arw{font-size:1rem;line-height:1}
@@ -84,6 +102,7 @@ select:focus{outline:none;border-color:var(--accent)}
 .insight b{font-weight:700}
 .insight .em-up{color:var(--up);font-weight:700}
 .insight .em-down{color:var(--down);font-weight:700}
+.insight .em-warn{color:var(--amber);font-weight:600;font-size:.92em}
 
 /* ---------- MINI CARDS ---------- */
 .mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:34px}
@@ -108,6 +127,7 @@ select:focus{outline:none;border-color:var(--accent)}
 .catrow .fillbar{height:100%;background:var(--accent);border-radius:7px;transition:width .5s cubic-bezier(.4,0,.2,1)}
 .catrow .amt{text-align:right;font-size:.92rem;font-weight:650;font-variant-numeric:tabular-nums}
 .catrow .chg{text-align:right;font-size:.82rem;font-weight:700;font-variant-numeric:tabular-nums}
+.catrow .pjsm{display:block;font-size:.72rem;font-weight:600;color:var(--accent);margin-top:1px}
 .catrow.zero{opacity:.42}
 .chg.up{color:var(--up)}.chg.down{color:var(--down)}.chg.flat{color:var(--flat)}
 
@@ -148,8 +168,10 @@ tbody td:first-child{text-align:left;font-weight:600}
 tfoot td{padding:11px 13px;text-align:right;font-weight:700;border-top:2px solid var(--border);white-space:nowrap;font-variant-numeric:tabular-nums}
 tfoot td:first-child{text-align:left}
 .pos{color:var(--up);font-weight:700}.neg{color:var(--down);font-weight:700}.neu{color:var(--flat)}
+.tblnote{padding:12px 13px 2px;font-size:.76rem;color:var(--ink-3)}
 tbody tr.dim td{opacity:.42}
 td.rank{text-align:center!important;font-weight:700;color:var(--ink-3);font-size:.95rem;width:56px}
+th.pjcol,td.pjcol{color:var(--accent);background:var(--accent-soft)}
 th.lft,td.lft{text-align:left!important}
 td.catcell{font-weight:600;white-space:nowrap}
 .flag{display:inline-block;margin-left:8px;font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:20px;
@@ -307,6 +329,11 @@ td.shr span:last-child{position:relative}
   <div class="monthbar">
     <label for="selMonth">ดูเดือน</label>
     <select id="selMonth"></select>
+    <span class="daybox" id="dayBox" style="display:none">
+      <label for="runDayInput">ข้อมูลถึงวันที่</label>
+      <input id="runDayInput" type="number" min="1" max="31" step="1" inputmode="numeric" placeholder="—">
+      <span class="daysuf" id="daySuffix"></span>
+    </span>
     <button class="btn" id="btnExport">↓ ดาวน์โหลด CSV</button>
   </div>
 
@@ -320,6 +347,7 @@ td.shr span:last-child{position:relative}
         <div class="hero-eyebrow" id="heroMonth">—</div>
         <div class="hero-value" id="heroValue">—</div>
         <div class="hero-unit">บาท</div>
+        <div class="hero-proj" id="heroProj" style="display:none"></div>
         <div class="deltas" id="heroDeltas"></div>
       </div>
       <div class="hero-right">
@@ -508,6 +536,41 @@ function monthOf(p){ return MONTHLY[p]||null; }
 function totalOf(p){ const m=monthOf(p); return m?m.total:null; }
 function catOf(p,c){ const m=monthOf(p); return m?(m.cats[c]||0):null; }
 
+/* =========================================================================
+   เดือนที่ยังไม่จบ + คาดการณ์สิ้นเดือน
+   ข้อมูลในชีตไม่มีวันที่เลย ระบบจึงไม่รู้เองว่ายอดนับถึงวันไหน — ผู้ใช้กรอกเอง
+   ไม่เก็บค่าลง localStorage ตั้งใจให้กรอกใหม่ทุกครั้งที่เปิดหน้า
+   กันไม่ให้ค่าเมื่อวานค้างจนคาดการณ์ผิดโดยไม่มีใครสังเกต
+   ========================================================================= */
+let runDay = null;
+
+function daysInMonth(p){
+  const s=splitPeriod(p); if(!s||s.idx<0) return null;
+  return new Date(2000+parseInt(s.yy,10), s.idx+1, 0).getDate();
+}
+// เดือนนี้คือเดือนปฏิทินปัจจุบันหรือไม่ (getFullYear คืน ค.ศ. เสมอ ไม่ขึ้นกับ locale ไทย)
+function isRunningMonth(p){
+  const s=splitPeriod(p); if(!s||s.idx<0) return false;
+  const now=new Date();
+  return s.idx===now.getMonth() && (2000+parseInt(s.yy,10))===now.getFullYear();
+}
+// ตัวคูณเดียวที่ใช้ทั้งระบบ — ยอดรวม/หมวด/อะไรก็ตาม คูณตัวนี้เหมือนกันหมด
+// สัดส่วนภายในเดือนจึงไม่เพี้ยน
+function runMultiplier(p){
+  if(!isRunningMonth(p) || !runDay) return null;
+  const d=daysInMonth(p);
+  if(!d || runDay<1 || runDay>d) return null;
+  return d/runDay;
+}
+function hasProjection(p){ return runMultiplier(p)!==null; }
+function projTotal(p){ const k=runMultiplier(p), v=totalOf(p); return (k===null||v===null)?v:v*k; }
+function projCat(p,c){ const k=runMultiplier(p), v=catOf(p,c);   return (k===null||v===null)?v:v*k; }
+// วันสูงสุดที่กรอกได้ — กันกรอกวันในอนาคตของเดือนที่กำลังวิ่ง
+function maxRunDay(p){
+  const d=daysInMonth(p); if(!d) return 31;
+  return isRunningMonth(p) ? Math.min(d, new Date().getDate()) : d;
+}
+
 /* ====== CSV ====== */
 function parseCSV(text){
   const rows=[]; let row=[], field="", inQ=false;
@@ -690,8 +753,24 @@ async function loadAll(fresh){
 function buildMonthSelect(){
   const sel=document.getElementById("selMonth");
   if(!PERIODS.includes(selMonth)) selMonth=PERIODS[0];
-  sel.innerHTML=PERIODS.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
+  sel.innerHTML=PERIODS.map(p=>
+    `<option value="${esc(p)}">${esc(p)}${isRunningMonth(p)?" · กำลังวิ่ง":""}</option>`).join("");
   sel.value=selMonth;          // ตั้งค่าตรงๆ กัน state กับ dropdown หลุดจากกัน
+  syncDayBox();
+}
+
+/* แสดง/ซ่อนช่องกรอกวันตัดยอด ให้ตรงกับเดือนที่เลือกอยู่ */
+function syncDayBox(){
+  const box=document.getElementById("dayBox");
+  const inp=document.getElementById("runDayInput");
+  const suf=document.getElementById("daySuffix");
+  if(!isRunningMonth(selMonth)){ box.style.display="none"; return; }
+  const s=splitPeriod(selMonth), dim=daysInMonth(selMonth), mx=maxRunDay(selMonth);
+  box.style.display="";
+  inp.max=mx;
+  inp.value=runDay||"";
+  suf.textContent=s.month+" (ทั้งเดือน "+dim+" วัน)";
+  box.classList.toggle("empty",!runDay);
 }
 
 /* =========================================================================
@@ -700,9 +779,28 @@ function buildMonthSelect(){
 function renderHero(){
   const cur=selMonth, prev=prevPeriodOf(cur), ly=lastYearOf(cur);
   const tCur=totalOf(cur)||0, tPrev=totalOf(prev), tLY=totalOf(ly);
+  const running=isRunningMonth(cur), proj=hasProjection(cur);
+  // เดือนที่ยังไม่จบ เทียบด้วยยอดคาดการณ์ ไม่ใช่ยอดครึ่งเดือน
+  const cmp = proj ? projTotal(cur) : tCur;
 
-  document.getElementById("heroMonth").textContent=cur;
+  document.getElementById("heroMonth").innerHTML = esc(cur) +
+    (running ? `<span class="runtag">${runDay?("ถึงวันที่ "+runDay+" · "):""}กำลังวิ่ง</span>` : "");
   document.getElementById("heroValue").textContent=fmt(tCur);
+
+  // บรรทัดคาดการณ์ใต้หน่วย
+  const projBox=document.getElementById("heroProj");
+  if(running && proj){
+    const dim=daysInMonth(cur);
+    projBox.innerHTML=`<span class="pj-label">คาดการณ์สิ้นเดือน</span>
+      <span class="pj-value">${fmt(Math.round(cmp))}</span> <span class="pj-unit">${UNIT}</span>
+      <span class="pj-note">จากยอด ${runDay} วันแรก เฉลี่ยต่อวัน ${fmt(Math.round(tCur/runDay))} × ${dim} วัน</span>`;
+    projBox.style.display="";
+  }else if(running){
+    projBox.innerHTML=`<span class="pj-ask">↑ ใส่วันที่ในช่อง “ข้อมูลถึงวันที่” ด้านบน เพื่อดูคาดการณ์สิ้นเดือน</span>`;
+    projBox.style.display="";
+  }else{
+    projBox.style.display="none";
+  }
 
   const chips=[];
   function chip(label,pct,diff){
@@ -711,9 +809,16 @@ function renderHero(){
     return `<span class="delta ${d}"><span class="arw">${arrow(d)}</span>${pctBare(pct)}
       <small>${esc(label)} ${diff>=0?"+":"−"}${fmt(Math.abs(diff))}</small></span>`;
   }
-  chips.push(chip("จากเดือนก่อน",calcPct(tCur,tPrev),tCur-(tPrev||0)));
-  chips.push(chip("จากปีก่อน",calcPct(tCur,tLY),tCur-(tLY||0)));
-  document.getElementById("heroDeltas").innerHTML=chips.join("");
+  if(running && !proj){
+    // ยังไม่รู้วันตัดยอด → เทียบไม่ได้ อย่าเอายอดครึ่งเดือนไปเทียบเดือนเต็มให้เข้าใจผิด
+    document.getElementById("heroDeltas").innerHTML=
+      `<span class="delta flat"><span class="arw">■</span>ยังเทียบไม่ได้<small>รอใส่วันตัดยอด</small></span>`;
+  }else{
+    const pfx = proj ? "คาดการณ์ vs " : "";
+    chips.push(chip(pfx+"เดือนก่อน",calcPct(cmp,tPrev),cmp-(tPrev||0)));
+    chips.push(chip(pfx+"ปีก่อน",   calcPct(cmp,tLY),  cmp-(tLY||0)));
+    document.getElementById("heroDeltas").innerHTML=chips.join("");
+  }
 
   renderSpark();
 }
@@ -726,7 +831,9 @@ function renderSpark(){
   // ไล่ย้อนหลัง 12 เดือนจากเดือนที่เลือก
   const seq=[]; let i=s.idx, yy=s.yy;
   for(let k=0;k<12;k++){
-    seq.unshift({p:periodOf(i,yy), v:totalOf(periodOf(i,yy))});
+    const pd=periodOf(i,yy);
+    // เดือนที่ยังไม่จบใช้ยอดคาดการณ์ ไม่งั้นเส้นจะดิ่งลงตอนท้ายทั้งที่ยังขายไม่ครบเดือน
+    seq.unshift({p:pd, v:hasProjection(pd)?projTotal(pd):totalOf(pd), est:hasProjection(pd)});
     i--; if(i<0){ i=11; yy=String(parseInt(yy,10)-1).padStart(2,"0"); }
   }
   const vals=seq.map(x=>x.v).filter(v=>v!==null);
@@ -737,11 +844,17 @@ function renderSpark(){
   const range=(max-min)||1;
   const pts=seq.map((x,k)=>{
     if(x.v===null) return null;
-    return { x: PAD + k*((W-PAD*2)/11), y: H-PAD - ((x.v-min)/range)*(H-PAD*2), v:x.v, p:x.p };
+    return { x: PAD + k*((W-PAD*2)/11), y: H-PAD - ((x.v-min)/range)*(H-PAD*2), v:x.v, p:x.p, est:x.est };
   }).filter(Boolean);
 
-  const line=pts.map((p,k)=>(k?"L":"M")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
-  const area=line+` L${pts[pts.length-1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`;
+  // ช่วงสุดท้ายที่เป็นคาดการณ์ แยกวาดเป็นเส้นประ ให้ต่างจากยอดจริงชัดเจน
+  const lastEst = pts.length>1 && pts[pts.length-1].est;
+  const solid = lastEst ? pts.slice(0,-1) : pts;
+  const line=solid.map((p,k)=>(k?"L":"M")+p.x.toFixed(1)+","+p.y.toFixed(1)).join(" ");
+  const dash = lastEst
+    ? `M${pts[pts.length-2].x.toFixed(1)},${pts[pts.length-2].y.toFixed(1)} L${pts[pts.length-1].x.toFixed(1)},${pts[pts.length-1].y.toFixed(1)}`
+    : "";
+  const area=line+` L${solid[solid.length-1].x.toFixed(1)},${H} L${solid[0].x.toFixed(1)},${H} Z`;
   const last=pts[pts.length-1];
   const up=pts.length>1 && last.v>=pts[pts.length-2].v;
   const col=up?"var(--up)":"var(--down)";
@@ -753,10 +866,12 @@ function renderSpark(){
     </linearGradient></defs>
     <path d="${area}" fill="url(#sg)"/>
     <path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="3.5" fill="${col}"/>
+    ${dash?`<path d="${dash}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>`:""}
+    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="3.5"
+      fill="${lastEst?"var(--card)":col}" stroke="${col}" stroke-width="${lastEst?2:0}"/>
   </svg>
   <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--ink-3);margin-top:4px">
-    <span>${esc(seq.find(x=>x.v!==null).p)}</span><span>${esc(selMonth)}</span>
+    <span>${esc(seq.find(x=>x.v!==null).p)}</span><span>${esc(selMonth)}${lastEst?" (คาดการณ์)":""}</span>
   </div>`;
 }
 
@@ -765,10 +880,14 @@ function renderSpark(){
    ========================================================================= */
 // หาหมวดที่ดันยอด/ฉุดยอดมากที่สุด — วัดด้วย "จำนวนเงินที่เปลี่ยนไป" ไม่ใช่ %
 // เพราะหมวดเล็กๆ ที่โต 300% อาจมีผลต่อยอดรวมน้อยกว่าหมวดใหญ่ที่โต 5%
+// เดือนที่ยังไม่จบใช้ยอดคาดการณ์ ไม่งั้นทุกหมวดจะติดลบหมดเพราะเทียบครึ่งเดือนกับเดือนเต็ม
 function movers(cur,base){
   if(!monthOf(base)) return null;
-  const list=CATEGORIES.map(c=>({cat:c, diff:(catOf(cur,c)||0)-(catOf(base,c)||0), now:catOf(cur,c)||0, was:catOf(base,c)||0}))
-                       .filter(d=>d.diff!==0);
+  const list=CATEGORIES.map(c=>{
+    const now=(hasProjection(cur)?projCat(cur,c):catOf(cur,c))||0;
+    const was=catOf(base,c)||0;
+    return {cat:c, diff:now-was, now, was};
+  }).filter(d=>Math.round(d.diff)!==0);
   if(!list.length) return null;
   list.sort((a,b)=>b.diff-a.diff);
   return { up:list[0], down:list[list.length-1] };
@@ -777,24 +896,38 @@ function movers(cur,base){
 function renderInsight(){
   const cur=selMonth, prev=prevPeriodOf(cur), ly=lastYearOf(cur);
   const tCur=totalOf(cur)||0, tPrev=totalOf(prev), tLY=totalOf(ly);
+  const running=isRunningMonth(cur), proj=hasProjection(cur);
+  const cmp = proj ? projTotal(cur) : tCur;
   const parts=[];
 
-  parts.push(`เดือน <b>${esc(cur)}</b> ทำยอดได้ <b>${fmt(tCur)} ${UNIT}</b>`);
+  if(running && proj){
+    parts.push(`<b>${esc(cur)}</b> ทำได้ <b>${fmt(tCur)} ${UNIT}</b> ใน ${runDay} วันแรก` +
+      ` · ถ้าไปต่อแบบนี้ทั้งเดือนจะได้ <b>${fmt(Math.round(cmp))} ${UNIT}</b>`);
+  }else if(running){
+    document.getElementById("insight").innerHTML=
+      `<b>${esc(cur)}</b> ยังไม่จบเดือน ทำได้แล้ว <b>${fmt(tCur)} ${UNIT}</b><br>` +
+      `ใส่วันที่ในช่อง <b>“ข้อมูลถึงวันที่”</b> ด้านบน เพื่อให้ระบบคาดการณ์ยอดสิ้นเดือนและเทียบกับเดือนก่อน/ปีก่อนได้`;
+    return;
+  }else{
+    parts.push(`เดือน <b>${esc(cur)}</b> ทำยอดได้ <b>${fmt(tCur)} ${UNIT}</b>`);
+  }
 
+  const vs = proj ? "คาดการณ์" : "";
   if(tPrev!==null){
-    const d=tCur-tPrev, p=calcPct(tCur,tPrev), k=dir(p);
-    parts.push(k==="up" ? `<span class="em-up">สูงกว่าเดือนก่อน ${human(Math.abs(d))} ${UNIT} (${fmtPct(p)})</span>`
-             : k==="down" ? `<span class="em-down">ต่ำกว่าเดือนก่อน ${human(Math.abs(d))} ${UNIT} (${fmtPct(p)})</span>`
-             : `ใกล้เคียงเดือนก่อน`);
+    const d=cmp-tPrev, p=calcPct(cmp,tPrev), k=dir(p);
+    parts.push(k==="up" ? `<span class="em-up">${vs}สูงกว่าเดือนก่อน ${human(Math.abs(d))} ${UNIT} (${fmtPct(p)})</span>`
+             : k==="down" ? `<span class="em-down">${vs}ต่ำกว่าเดือนก่อน ${human(Math.abs(d))} ${UNIT} (${fmtPct(p)})</span>`
+             : `${vs}ใกล้เคียงเดือนก่อน`);
   }
   if(tLY!==null){
-    const d=tCur-tLY, p=calcPct(tCur,tLY), k=dir(p);
+    const p=calcPct(cmp,tLY), k=dir(p);
     parts.push(k==="up" ? `และ<span class="em-up">โตกว่าช่วงเดียวกันปีที่แล้ว ${fmtPct(p)}</span>`
              : k==="down" ? `แต่<span class="em-down">ยังต่ำกว่าช่วงเดียวกันปีที่แล้ว ${fmtPct(p)}</span>`
              : `และเท่ากับช่วงเดียวกันปีที่แล้ว`);
   }
 
   let txt=parts.join(" ")+" ";
+  if(proj && runDay<=3) txt+=`<br><span class="em-warn">⚠️ คาดการณ์จากข้อมูลแค่ ${runDay} วัน อาจคลาดเคลื่อนสูง</span>`;
 
   const mv=movers(cur,prev);
   if(mv){
@@ -826,20 +959,28 @@ function renderMini(){
   }
 
   // สะสมตั้งแต่ต้นปี เทียบช่วงเดียวกันปีก่อน
+  // เดือนที่ยังไม่จบใช้ยอดคาดการณ์ ไม่งั้นจะเอาครึ่งเดือนไปเทียบเดือนเต็มของปีก่อน
   const s=splitPeriod(cur);
   if(s){
     const py=String(parseInt(s.yy,10)-1).padStart(2,"0");
-    let c=0,p=0,n=0;
+    let c=0,p=0,usedProj=false; const inc=[];
     for(let i=0;i<=s.idx;i++){
-      const a=totalOf(periodOf(i,s.yy)); if(a===null) continue;
-      n++; c+=a; p+=(totalOf(periodOf(i,py))||0);
+      const pd=periodOf(i,s.yy);
+      const a=totalOf(pd); if(a===null) continue;
+      if(hasProjection(pd)){ c+=projTotal(pd); usedProj=true; }
+      else if(isRunningMonth(pd)){ continue; }   // ยังไม่รู้วันตัดยอด ตัดออกดีกว่านับครึ่งเดือน
+      else c+=a;
+      inc.push(i); p+=(totalOf(periodOf(i,py))||0);
     }
+    const n=inc.length;
     if(n){
       const pct=calcPct(c,p||null), k=dir(pct);
-      cards.push({cap:"📅 สะสมทั้งปี "+(n>1?MONTHS_TH[0]+"–"+s.month:s.month),
-        main:fmt(c)+" "+UNIT,
-        note:pct===null?"ไม่มีข้อมูลปีก่อนเทียบ"
-          :`ปีก่อนช่วงเดียวกัน ${fmt(p)} · <b style="color:var(--${k==="up"?"up":k==="down"?"down":"flat"})">${fmtPct(pct)}</b>`});
+      const range=n>1?(MONTHS_TH[inc[0]]+"–"+MONTHS_TH[inc[n-1]]):MONTHS_TH[inc[0]];
+      cards.push({cap:"📅 สะสมทั้งปี "+range,
+        main:fmt(Math.round(c))+" "+UNIT,
+        note:(pct===null?"ไม่มีข้อมูลปีก่อนเทียบ"
+          :`ปีก่อนช่วงเดียวกัน ${fmt(p)} · <b style="color:var(--${k==="up"?"up":k==="down"?"down":"flat"})">${fmtPct(pct)}</b>`)
+          +(usedProj?` <span style="color:var(--ink-3)">(รวมคาดการณ์ ${s.month})</span>`:"")});
     }
   }
 
@@ -856,10 +997,17 @@ function renderMini(){
 function renderCatList(){
   const cur=selMonth, prev=prevPeriodOf(cur);
   const tCur=totalOf(cur)||0;
-  document.getElementById("catHint").textContent = monthOf(prev) ? ("ตัวเลข % คือเทียบกับ "+prev) : "";
+  const proj=hasProjection(cur);
+  document.getElementById("catHint").textContent = monthOf(prev)
+    ? ("ตัวเลข % คือ"+(proj?"ยอดคาดการณ์":"")+"เทียบกับ "+prev) : "";
 
-  const rows=CATEGORIES.map(c=>({cat:c, v:catOf(cur,c)||0, chg:changeChip(catOf(cur,c)||0, monthOf(prev)?catOf(prev,c):null)}))
-                       .sort((a,b)=>b.v-a.v);
+  const rows=CATEGORIES.map(c=>{
+    const v=catOf(cur,c)||0;
+    // เทียบด้วยยอดคาดการณ์ แต่แสดงยอดจริงเป็นตัวหลัก
+    const cmp=proj?projCat(cur,c):v;
+    return {cat:c, v, pj:proj?projCat(cur,c):null,
+            chg:changeChip(cmp, monthOf(prev)?catOf(prev,c):null)};
+  }).sort((a,b)=>b.v-a.v);
   const max=rows.length?Math.max(...rows.map(r=>r.v),1):1;
 
   document.getElementById("catList").innerHTML=rows.map(r=>{
@@ -867,7 +1015,8 @@ function renderCatList(){
     return `<div class="catrow ${r.v===0?"zero":""}">
       <div class="nm" title="${esc(r.cat)}"><span class="ic">${ico(r.cat)}</span>${esc(r.cat)}</div>
       <div class="track"><div class="fillbar" style="width:${(r.v/max*100).toFixed(1)}%"></div></div>
-      <div class="amt">${fmt(r.v)}<span style="color:var(--ink-3);font-weight:500;font-size:.78rem"> ${share.toFixed(0)}%</span></div>
+      <div class="amt">${fmt(r.v)}<span style="color:var(--ink-3);font-weight:500;font-size:.78rem"> ${share.toFixed(0)}%</span>
+        ${r.pj!==null?`<span class="pjsm">→ ${fmt(Math.round(r.pj))}</span>`:""}</div>
       <div class="chg ${r.chg.k}">${r.chg.txt}</div>
     </div>`;
   }).join("");
@@ -894,13 +1043,15 @@ function renderProdList(){
   const shown=list.slice(0,SETTINGS.TOP_PRODUCTS);
   const restV=list.slice(SETTINGS.TOP_PRODUCTS).reduce((a,p)=>a+p.value,0);
 
+  const k=runMultiplier(cur);   // เดือนยังไม่จบ เทียบด้วยยอดคาดการณ์ ไม่งั้นติดลบทั้งกระดาน
   document.getElementById("prodHint").textContent=
-    `${SETTINGS.TOP_PRODUCTS} อันดับแรก จากทั้งหมด ${list.length} รายการ`;
+    `${SETTINGS.TOP_PRODUCTS} อันดับแรก จากทั้งหมด ${list.length} รายการ`
+    + (k?" · % เทียบจากยอดคาดการณ์":"");
 
   document.getElementById("prodList").innerHTML=shown.map((p,i)=>{
     // สินค้าที่เดือนก่อนไม่มีขายเลย → ถือเป็นของใหม่ ไม่ใช่ "ไม่มีข้อมูล"
     const pv=monthOf(prev)?(prevMap.has(p.key)?prevMap.get(p.key):0):null;
-    const chg=changeChip(p.value,pv);
+    const chg=changeChip(k?p.value*k:p.value, pv);
     const share=m.total?(p.value/m.total*100):0;
     return `<div class="prodrow">
       <div class="rk">${medal(i)}</div>
@@ -953,19 +1104,32 @@ function renderTrend(){
 
   const prev=MONTHS_TH.map((m,i)=>totalOf(periodOf(i,py))||0);
   const cur =MONTHS_TH.map((m,i)=>totalOf(periodOf(i,s.yy))||0);
+  // ส่วนที่คาดว่าจะได้เพิ่มของเดือนที่ยังไม่จบ วางซ้อนบนแท่งจริง
+  // ไม่งั้นแท่งเดือนปัจจุบันจะเตี้ยผิดปกติจนอ่านเทรนด์ผิด
+  const add=MONTHS_TH.map((m,i)=>{
+    const p=periodOf(i,s.yy);
+    return hasProjection(p) ? Math.max(0, projTotal(p)-(totalOf(p)||0)) : 0;
+  });
+  const hasAdd=add.some(v=>v>0);
+
   const ctx=document.getElementById("trendChart");
   if(!ctx) return;
   if(trendChart) trendChart.destroy();
+  const ds=[
+    {label:"20"+py,data:prev,backgroundColor:t.prev,borderRadius:5,barPercentage:.9,categoryPercentage:.7,stack:"prev"},
+    {label:"20"+s.yy,data:cur,backgroundColor:t.cur,borderRadius:hasAdd?0:5,barPercentage:.9,categoryPercentage:.7,stack:"cur"}
+  ];
+  if(hasAdd) ds.push({label:"คาดว่าจะได้เพิ่ม",data:add,backgroundColor:t.cur+"59",
+    borderRadius:5,barPercentage:.9,categoryPercentage:.7,stack:"cur"});
+
   trendChart=new Chart(ctx.getContext("2d"),{
     type:"bar",
-    data:{labels:MONTHS_TH,datasets:[
-      {label:"20"+py,data:prev,backgroundColor:t.prev,borderRadius:5,barPercentage:.9,categoryPercentage:.7},
-      {label:"20"+s.yy,data:cur,backgroundColor:t.cur,borderRadius:5,barPercentage:.9,categoryPercentage:.7}
-    ]},
+    data:{labels:MONTHS_TH,datasets:ds},
     options:baseOpts(t,{afterBody:items=>{
       if(!items.length) return "";
-      const i=items[0].dataIndex, p=calcPct(cur[i]||null,prev[i]||null);
-      return p===null?"":"  YoY: "+fmtPct(p);
+      const i=items[0].dataIndex;
+      const p=calcPct((cur[i]||0)+(add[i]||0)||null, prev[i]||null);
+      return p===null?"":"  YoY"+(add[i]>0?" (จากคาดการณ์)":"")+": "+fmtPct(p);
     }})
   });
 }
@@ -991,14 +1155,19 @@ function renderCatTable(){
   const cur=selMonth, prev=prevPeriodOf(cur), ly=lastYearOf(cur);
   const hasPrev=!!monthOf(prev), hasLY=!!monthOf(ly);
 
+  const proj=hasProjection(cur);
+
   const data=CATEGORIES.map(c=>{
     const vc=catOf(cur,c)||0, vp=hasPrev?(catOf(prev,c)||0):null, vl=hasLY?(catOf(ly,c)||0):null;
-    return {cat:c,cur:vc,prev:vp,ly:vl,mDiff:vp===null?null:vc-vp,mPct:calcPct(vc,vp),
-            yDiff:vl===null?null:vc-vl,yPct:calcPct(vc,vl)};
+    const cmp=proj?projCat(cur,c):vc;      // เดือนที่ยังไม่จบ เทียบด้วยคาดการณ์
+    return {cat:c,cur:vc,pj:proj?cmp:null,prev:vp,ly:vl,
+            mDiff:vp===null?null:cmp-vp,mPct:calcPct(cmp,vp),
+            yDiff:vl===null?null:cmp-vl,yPct:calcPct(cmp,vl)};
   }).sort((a,b)=>b.cur-a.cur);
 
   const sum=k=>data.reduce((a,d)=>a+(d[k]||0),0);
   const tCur=sum("cur"), tPrev=hasPrev?sum("prev"):null, tLY=hasLY?sum("ly"):null;
+  const tCmp=proj?sum("pj"):tCur;
 
   // แชมป์ = หมวดที่เพิ่มเป็นเงินมากที่สุด · ที่ต้องดู = หมวดที่ลดเป็นเงินมากที่สุด
   let champ=null, drop=null;
@@ -1011,7 +1180,8 @@ function renderCatTable(){
   const head=["<th>อันดับ</th>",'<th class="lft">หมวด</th>'];
   if(hasLY)   head.push(`<th>${esc(ly)}</th>`);
   if(hasPrev) head.push(`<th>${esc(prev)}</th>`);
-  head.push(`<th>${esc(cur)}</th>`);
+  head.push(`<th>${esc(cur)}${proj?" (ถึงวันที่ "+runDay+")":""}</th>`);
+  if(proj)    head.push('<th class="pjcol">คาดการณ์สิ้นเดือน</th>');
   if(hasPrev) head.push("<th>ต่างจากเดือนก่อน</th>","<th>%</th>");
   if(hasLY)   head.push("<th>ต่างจากปีก่อน</th>","<th>%</th>");
   head.push("<th>สัดส่วน</th>");
@@ -1025,6 +1195,7 @@ function renderCatTable(){
     if(hasLY)   td.push(`<td>${fmt(d.ly)}</td>`);
     if(hasPrev) td.push(`<td>${fmt(d.prev)}</td>`);
     td.push(`<td><b>${fmt(d.cur)}</b></td>`);
+    if(proj)    td.push(`<td class="pjcol"><b>${fmt(Math.round(d.pj))}</b></td>`);
     if(hasPrev) td.push(`<td>${dC(d.mDiff)}</td>`,`<td>${pC(d.mPct)}</td>`);
     if(hasLY)   td.push(`<td>${dC(d.yDiff)}</td>`,`<td>${pC(d.yPct)}</td>`);
     td.push(`<td class="shr"><span class="shrbar" style="width:${share.toFixed(1)}%"></span><span>${share.toFixed(1)}%</span></td>`);
@@ -1035,8 +1206,9 @@ function renderCatTable(){
   if(hasLY)   foot.push(`<td>${fmt(tLY)}</td>`);
   if(hasPrev) foot.push(`<td>${fmt(tPrev)}</td>`);
   foot.push(`<td>${fmt(tCur)}</td>`);
-  if(hasPrev) foot.push(`<td>${dC(tCur-tPrev)}</td>`,`<td>${pC(calcPct(tCur,tPrev))}</td>`);
-  if(hasLY)   foot.push(`<td>${dC(tCur-tLY)}</td>`,`<td>${pC(calcPct(tCur,tLY))}</td>`);
+  if(proj)    foot.push(`<td class="pjcol">${fmt(Math.round(tCmp))}</td>`);
+  if(hasPrev) foot.push(`<td>${dC(tCmp-tPrev)}</td>`,`<td>${pC(calcPct(tCmp,tPrev))}</td>`);
+  if(hasLY)   foot.push(`<td>${dC(tCmp-tLY)}</td>`,`<td>${pC(calcPct(tCmp,tLY))}</td>`);
   foot.push("<td>100%</td>");
 
   wrap.innerHTML=`<table><thead><tr>${head.join("")}</tr></thead><tbody>${body}</tbody><tfoot><tr>${foot.join("")}</tr></tfoot></table>`;
@@ -1072,8 +1244,10 @@ function renderProdTable(){
   const sumQ=list.reduce((a,p)=>a+p.qty,0);
   const maxV=list.length?list[0].value:1;
 
+  const km=runMultiplier(cur);   // เดือนยังไม่จบ เทียบด้วยยอดคาดการณ์
   document.getElementById("allProdHint").textContent=
-    (prodFilter?`${ico(prodFilter)} ${prodFilter} · `:"")+list.length+" รายการ · "+cur;
+    (prodFilter?`${ico(prodFilter)} ${prodFilter} · `:"")+list.length+" รายการ · "+cur
+    +(km?" · % เทียบจากยอดคาดการณ์":"");
 
   if(!list.length){ wrap.innerHTML='<div class="empty">ไม่มีสินค้าในหมวดนี้</div>'; return; }
 
@@ -1081,7 +1255,7 @@ function renderProdTable(){
     <th>อันดับ</th><th class="lft">สินค้า</th><th>จำนวน</th><th>ยอดขาย</th><th>เทียบ ${esc(prev||"เดือนก่อน")}</th>
   </tr></thead><tbody>${list.map((p,i)=>{
     const pv=monthOf(prev)?(prevMap.has(p.key)?prevMap.get(p.key):0):null;
-    const chg=changeChip(p.value,pv);
+    const chg=changeChip(km?p.value*km:p.value, pv);
     return `<tr>
       <td class="rank">${medal(i)}</td>
       <td class="pcell">
@@ -1094,7 +1268,7 @@ function renderProdTable(){
     </tr>`;
   }).join("")}</tbody><tfoot><tr>
     <td></td><td class="lft">รวม${prodFilter?" "+esc(prodFilter):"ทั้งหมด"}</td><td>${fmt(sumQ)}</td><td>${fmt(sumV)}</td>
-    <td>${!prodFilter&&monthOf(prev)?pC(calcPct(m.total,totalOf(prev))):""}</td>
+    <td>${!prodFilter&&monthOf(prev)?pC(calcPct(km?m.total*km:m.total,totalOf(prev))):""}</td>
   </tr></tfoot></table>`;
 }
 
@@ -1107,10 +1281,14 @@ function renderHistTable(){
   const months=MONTHS_TH.map((m,i)=>periodOf(i,s.yy)).filter(p=>monthOf(p));
   if(!months.length){ wrap.innerHTML='<div class="empty">ไม่มีข้อมูล</div>'; return; }
 
+  let anyRunning=false;
   const body=months.map(p=>{
     const lyv=totalOf(periodOf(splitPeriod(p).idx,py)), tot=totalOf(p);
-    return `<tr><td>${esc(p)}</td>${CATEGORIES.map(c=>`<td>${fmt(catOf(p,c))}</td>`).join("")}
-      <td><b>${fmt(tot)}</b></td><td>${fmt(lyv)}</td><td>${pC(calcPct(tot,lyv))}</td></tr>`;
+    const run=isRunningMonth(p); if(run) anyRunning=true;
+    // แถวเดือนที่ยังไม่จบเทียบ YoY ด้วยคาดการณ์ (ถ้ามี) ไม่งั้นเว้นไว้
+    const cmp=hasProjection(p)?projTotal(p):(run?null:tot);
+    return `<tr class="${run?"dim":""}"><td>${esc(p)}${run?" *":""}</td>${CATEGORIES.map(c=>`<td>${fmt(catOf(p,c))}</td>`).join("")}
+      <td><b>${fmt(tot)}</b></td><td>${fmt(lyv)}</td><td>${cmp===null?'<span class="neu">-</span>':pC(calcPct(cmp,lyv))}</td></tr>`;
   }).join("");
   const tc=CATEGORIES.map(c=>months.reduce((a,p)=>a+(catOf(p,c)||0),0));
   const tAll=months.reduce((a,p)=>a+(totalOf(p)||0),0);
@@ -1121,7 +1299,8 @@ function renderHistTable(){
   </tr></thead><tbody>${body}</tbody><tfoot><tr>
     <td>รวม ${months.length} เดือน</td>${tc.map(v=>`<td>${fmt(v)}</td>`).join("")}
     <td>${fmt(tAll)}</td><td>${fmt(tLY)}</td><td>${pC(calcPct(tAll,tLY||null))}</td>
-  </tr></tfoot></table>`;
+  </tr></tfoot></table>
+  ${anyRunning?'<div class="tblnote">* เดือนที่ยังไม่จบ ตัวเลขเป็นยอดที่ทำได้ถึงตอนนี้ ไม่ใช่ทั้งเดือน</div>':""}`;
 }
 
 /* =========================================================================
@@ -1182,18 +1361,25 @@ function exportCSV(){
   const cur=selMonth, prev=prevPeriodOf(cur), ly=lastYearOf(cur);
   const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
   const out=[];
+  const proj=hasProjection(cur);
   out.push(q("สาขา "+CFG.branch+" — สรุป "+cur));
-  out.push(["หมวด",ly+" (ปีก่อน)",prev+" (เดือนก่อน)",cur,"ต่างจากเดือนก่อน","% MoM","ต่างจากปีก่อน","% YoY"].map(q).join(","));
+  if(proj) out.push(q("เดือนยังไม่จบ · ข้อมูลถึงวันที่ "+runDay+" จาก "+daysInMonth(cur)+" วัน · %เทียบคำนวณจากยอดคาดการณ์"));
+  out.push(["หมวด",ly+" (ปีก่อน)",prev+" (เดือนก่อน)",cur]
+    .concat(proj?["คาดการณ์สิ้นเดือน"]:[])
+    .concat(["ต่างจากเดือนก่อน","% MoM","ต่างจากปีก่อน","% YoY"]).map(q).join(","));
   CATEGORIES.forEach(c=>{
     const vc=catOf(cur,c)||0, vp=catOf(prev,c), vl=catOf(ly,c);
-    const mp=calcPct(vc,vp), yp=calcPct(vc,vl);
-    out.push([c,vl??"",vp??"",vc,vp===null?"":vc-vp,mp===null?"":mp.toFixed(2)+"%",
-              vl===null?"":vc-vl,yp===null?"":yp.toFixed(2)+"%"].join(","));
+    const cmp=proj?Math.round(projCat(cur,c)):vc;
+    const mp=calcPct(cmp,vp), yp=calcPct(cmp,vl);
+    out.push([c,vl??"",vp??"",vc].concat(proj?[cmp]:[])
+      .concat([vp===null?"":cmp-vp, mp===null?"":mp.toFixed(2)+"%",
+               vl===null?"":cmp-vl, yp===null?"":yp.toFixed(2)+"%"]).join(","));
   });
   const tc=totalOf(cur)||0, tp=totalOf(prev), tl=totalOf(ly);
-  out.push(["รวม",tl??"",tp??"",tc,tp===null?"":tc-tp,
-    calcPct(tc,tp)===null?"":calcPct(tc,tp).toFixed(2)+"%",
-    tl===null?"":tc-tl, calcPct(tc,tl)===null?"":calcPct(tc,tl).toFixed(2)+"%"].join(","));
+  const tcmp=proj?Math.round(projTotal(cur)):tc;
+  out.push(["รวม",tl??"",tp??"",tc].concat(proj?[tcmp]:[])
+    .concat([tp===null?"":tcmp-tp, calcPct(tcmp,tp)===null?"":calcPct(tcmp,tp).toFixed(2)+"%",
+             tl===null?"":tcmp-tl, calcPct(tcmp,tl)===null?"":calcPct(tcmp,tl).toFixed(2)+"%"]).join(","));
 
   const m=monthOf(cur);
   if(m){
@@ -1321,7 +1507,29 @@ document.getElementById("btnSetup").addEventListener("click",()=>openSetup(false
 document.getElementById("btnRefresh").addEventListener("click",()=>{ loadAll(true); resetAuto(); });
 document.getElementById("btnExport").addEventListener("click",exportCSV);
 document.getElementById("btnHealth").addEventListener("click",showHealth);
-document.getElementById("selMonth").addEventListener("change",e=>{ selMonth=e.target.value; renderAll(); });
+document.getElementById("selMonth").addEventListener("change",e=>{
+  selMonth=e.target.value;
+  runDay=null;              // คนละเดือนคนละวันตัดยอด อย่าเอาของเดือนก่อนมาใช้ต่อ
+  syncDayBox(); renderAll();
+});
+document.getElementById("runDayInput").addEventListener("input",e=>{
+  const mx=maxRunDay(selMonth);
+  const n=parseInt(e.target.value,10);
+  runDay=(Number.isFinite(n) && n>=1 && n<=mx) ? n : null;
+  document.getElementById("dayBox").classList.toggle("empty",!runDay);
+  renderAll();
+});
+// กรอกค่านอกช่วงแล้วคลิกออก → ดึงกลับให้อยู่ในช่วงที่ใช้ได้
+document.getElementById("runDayInput").addEventListener("blur",e=>{
+  const mx=maxRunDay(selMonth);
+  const n=parseInt(e.target.value,10);
+  if(e.target.value!=="" && (!Number.isFinite(n) || n<1 || n>mx)){
+    runDay=Number.isFinite(n) ? Math.min(Math.max(n,1),mx) : null;
+    e.target.value=runDay||"";
+    document.getElementById("dayBox").classList.toggle("empty",!runDay);
+    renderAll();
+  }
+});
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
 function resetAuto(){ if(autoTimer) clearInterval(autoTimer); if(SETTINGS.AUTO_REFRESH_MIN>0) autoTimer=setInterval(loadAll,SETTINGS.AUTO_REFRESH_MIN*60000); }
 
