@@ -139,9 +139,9 @@ Worker ไปดึงทุกแท็บให้แล้วเก็บ cac
 | 1 | `Category = SERVICE` และ `SubCat = ICARE` | Service Bill |
 | 2 | `Category = APPLE SERVICE` และ Product มี `SERVICE FEE` | Exchange — เป็นค่าบริการ ไม่ใช่ค่าอะไหล่ |
 | 3 | มี `APPLE CARE` | AC+ |
-| 4 | **Product มี `DISPLAY` + มี `IPHONE`** | **iPhone Display** |
-| 5 | **Product มี `DISPLAY` แต่ไม่มี `IPHONE`** | **CPU** — เป็นจอ Mac |
-| 6 | Product มี `IPHONE` + `BATTERY` | iPhone Battery |
+| 4 | **ชื่อขึ้นต้นด้วย `Display` + มี `IPHONE`** | **iPhone Display** |
+| 5 | **ชื่อขึ้นต้นด้วย `Display` แต่ไม่มี `IPHONE`** | **CPU** — เป็นจอ Mac |
+| 6 | ชื่อมี `IPHONE` + `BATTERY` | iPhone Battery |
 | 7 | `Category = APPLE SERVICE` และ SubCat ไม่ใช่ BATTERY/CPU/ICARE/DISPLAY | Exchange |
 | 8 | มี `BATTERY` | iPhone Battery |
 | 9 | มี `CPU` | CPU |
@@ -154,6 +154,12 @@ Worker ไปดึงทุกแท็บให้แล้วเก็บ cac
 > **ทำไม `DISPLAY` ที่ไม่มี `IPHONE` ถึงเป็น CPU:** สแกนข้อมูลจริง 20 เดือนแล้ว
 > จอที่ไม่ใช่ iPhone เป็นจอ Mac ทั้งหมด (ชื่อลงท้ายด้วยสี MacBook อย่าง Space Black,
 > Starlight, Midnight หรือมี MBA) **ไม่มีจอ iPad / Watch / AirPods ปนเลยสักแถว**
+
+> **ทำไมต้อง "ขึ้นต้นด้วย" ไม่ใช่แค่ "มีคำว่า":** อะไหล่จริงตั้งชื่อแบบ
+> `<ชื่อชิ้นส่วน>, <รุ่น/สี>` เช่น `Display, iPhone 17 Pro Max` ส่วนค่าบริการอ่านเป็นประโยค
+> เช่น `ACS ISF IPHONE DISPLAY OR BACK GLASS` ซึ่งมีคำว่า DISPLAY แต่ไม่ใช่ตัวจอ
+> กฎจึงเช็ค 2 ชั้น — ต้องขึ้นต้นด้วยชื่อชิ้นส่วน (ยอมให้มี `SVC,` นำหน้า) **และ**
+> ต้องไม่มี `FEE` / `ISF` / ไม่ขึ้นต้นด้วย `ACS` (ดูฟังก์ชัน `isPartNamed()` กับ `isFeeName()`)
 
 ### ตัวอย่างการจับคู่
 
