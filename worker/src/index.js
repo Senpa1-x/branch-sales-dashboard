@@ -16,6 +16,7 @@ import DASHBOARD_HTML from "../../index.html";
 const COOKIE = "dash_auth";
 const MAX_AGE = 60 * 60 * 24 * 30;    // จำไว้ 30 วัน
 const MAX_MONTH = 12;
+const GSX_TAB = "ชีต1";               // ชีตงานซ่อม: แท็บเดียวทั้งปี
 const CACHE_TTL = 600;                // เก็บผลดึง Sheet ไว้ 10 นาที
 
 /* ---------- ลายเซ็น cookie (HMAC-SHA256) ---------- */
@@ -170,14 +171,23 @@ async function apiSheets(request, env, ctx) {
   }
 
   const jobs = [];
+  // ชีตยอดขาย: 1 แท็บ = 1 เดือน
   for (const s of cfg.sources) {
     for (let m = 1; m <= MAX_MONTH; m++) {
       const tab = "เดือน " + m;
       jobs.push(fetchTabText(s.sheetId, tab).then(
-        text => ({ yy: s.yy, m, tab, text }),
-        err  => ({ yy: s.yy, m, tab, error: String((err && err.message) || err) })
+        text => ({ kind: "sales", yy: s.yy, m, tab, text }),
+        err  => ({ kind: "sales", yy: s.yy, m, tab, error: String((err && err.message) || err) })
       ));
     }
+  }
+  // ชีตงานซ่อม: แท็บเดียวทั้งปี หน้าเว็บแยกเดือนเองจาก Created Date
+  for (const s of (Array.isArray(cfg.gsx) ? cfg.gsx : [])) {
+    const tab = GSX_TAB;
+    jobs.push(fetchTabText(s.sheetId, tab).then(
+      text => ({ kind: "gsx", yy: s.yy, m: 1, tab, text }),
+      err  => ({ kind: "gsx", yy: s.yy, m: 1, tab, error: String((err && err.message) || err) })
+    ));
   }
   const tabs = await Promise.all(jobs);
   const body = JSON.stringify({ ok: true, fetchedAt: Date.now(), tabs });

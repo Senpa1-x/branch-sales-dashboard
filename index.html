@@ -48,7 +48,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:10
 .icon-btn:hover{color:var(--ink);border-color:var(--ink-3)}
 
 /* ---------- TABS ---------- */
-.tabs{display:inline-flex;background:var(--flat-soft);padding:3px;border-radius:11px;margin-bottom:22px}
+.tabrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
+.tabs{display:inline-flex;background:var(--flat-soft);padding:3px;border-radius:11px}
+.tabs.views .tab.on{background:var(--accent);color:#fff}
 .tab{padding:8px 20px;border:none;background:transparent;border-radius:8px;font-family:var(--font);font-size:.88rem;font-weight:600;color:var(--ink-2);cursor:pointer;transition:.18s}
 .tab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.09)}
 
@@ -215,6 +217,7 @@ td.shr span:last-child{position:relative}
 .setup-card input::placeholder{color:var(--ink-3)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .setup-hint{font-size:.78rem;color:var(--ink-3);line-height:1.6;margin-bottom:12px}
+.setup-hint code{background:rgba(128,128,128,.18);padding:1px 5px;border-radius:4px;font-size:.92em}
 .cfgrow{display:grid;grid-template-columns:78px 1fr 34px;gap:9px;align-items:center;margin-bottom:9px}
 .cfgrow .yr{text-align:center}
 .rmrow{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--ink-3);
@@ -297,6 +300,11 @@ td.shr span:last-child{position:relative}
     <div id="cfgRows"></div>
     <button class="addrow" id="cfgAdd">+ เพิ่มปี</button>
 
+    <label class="blk">Google Sheet งานซ่อม GSX <span class="opt">(ไม่ใส่ก็ได้)</span></label>
+    <div class="setup-hint">1 ไฟล์ต่อ 1 ปี · แท็บเดียวชื่อ <code>ชีต1</code> · ระบบแยกเดือนเองจากคอลัมน์ <code>Created Date</code></div>
+    <div id="cfgGsxRows"></div>
+    <button class="addrow" id="cfgGsxAdd">+ เพิ่มปี</button>
+
     <div id="cfgErr" class="cfg-err" style="display:none"></div>
 
     <div class="setup-actions">
@@ -321,9 +329,15 @@ td.shr span:last-child{position:relative}
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab on" data-tab="over">ภาพรวม</button>
-    <button class="tab" data-tab="detail">รายละเอียด</button>
+  <div class="tabrow">
+    <div class="tabs">
+      <button class="tab on" data-tab="over">ภาพรวม</button>
+      <button class="tab" data-tab="detail">รายละเอียด</button>
+    </div>
+    <div class="tabs views" id="viewToggle" style="display:none">
+      <button class="tab on" data-view="sales">💰 ยอดขาย</button>
+      <button class="tab" data-view="gsx">🔧 งานซ่อม</button>
+    </div>
   </div>
 
   <div class="monthbar">
@@ -346,7 +360,7 @@ td.shr span:last-child{position:relative}
       <div class="hero-left">
         <div class="hero-eyebrow" id="heroMonth">—</div>
         <div class="hero-value" id="heroValue">—</div>
-        <div class="hero-unit">บาท</div>
+        <div class="hero-unit" id="heroUnit">บาท</div>
         <div class="hero-proj" id="heroProj" style="display:none"></div>
         <div class="deltas" id="heroDeltas"></div>
       </div>
@@ -362,7 +376,7 @@ td.shr span:last-child{position:relative}
 
     <div class="sec">
       <div class="sec-head">
-        <h2>ยอดขายแยกตามหมวด</h2>
+        <h2 id="catTitle">ยอดขายแยกตามหมวด</h2>
         <span class="hint" id="catHint"></span>
       </div>
       <div class="panel"><div class="catlist" id="catList"></div></div>
@@ -370,7 +384,7 @@ td.shr span:last-child{position:relative}
 
     <div class="sec">
       <div class="sec-head">
-        <h2>สินค้าขายดี</h2>
+        <h2 id="prodTitle">สินค้าขายดี</h2>
         <span class="hint" id="prodHint"></span>
       </div>
       <div class="panel"><div class="prodlist" id="prodList"></div></div>
@@ -400,7 +414,7 @@ td.shr span:last-child{position:relative}
     </div>
 
     <div class="sec">
-      <div class="sec-head"><h2>สินค้าทั้งหมด</h2><span class="hint" id="allProdHint"></span></div>
+      <div class="sec-head"><h2 id="allProdTitle">สินค้าทั้งหมด</h2><span class="hint" id="allProdHint"></span></div>
       <div class="chips" id="prodChips"></div>
       <div class="panel"><div class="tblwrap" id="prodTable"></div></div>
     </div>
@@ -427,15 +441,16 @@ td.shr span:last-child{position:relative}
 // ค่าเหล่านั้นผู้ใช้กรอกเองผ่านหน้า "ตั้งค่าแหล่งข้อมูล" แล้วเก็บใน localStorage
 // ของเบราว์เซอร์เครื่องนั้น ไม่ถูกส่งขึ้นเซิร์ฟเวอร์ และไม่อยู่ในโค้ดบน GitHub
 const SETTINGS = {
-  TAB_NAME: m => "เดือน " + m,
+  TAB_NAME: m => "เดือน " + m,   // ชีตยอดขาย: 1 แท็บ = 1 เดือน
   MAX_MONTH: 12,
-  TOP_PRODUCTS: 8,          // สินค้าขายดีที่โชว์ในหน้าภาพรวม
+  GSX_TAB: "ชีต1",               // ชีตงานซ่อม: แท็บเดียว แยกเดือนเองจาก Created Date
+  TOP_PRODUCTS: 8,
   AUTO_REFRESH_MIN: 15
 };
 
 const CFG_KEY = "dash-config-v1";
-// ค่าที่ผู้ใช้กรอก: {branch, am, sources:[{yy,title,sheetId}]}
-let CFG = { branch:"", am:"", sources:[] };
+// ค่าที่ผู้ใช้กรอก: {branch, am, sources:[{yy,title,sheetId}], gsx:[{yy,title,sheetId}]}
+let CFG = { branch:"", am:"", sources:[], gsx:[] };
 
 let CFG_FROM_SERVER=false;
 
@@ -443,7 +458,8 @@ function useCfg(o){
   if(!o||!Array.isArray(o.sources)) return false;
   const src=o.sources.filter(s=>s&&s.yy&&s.sheetId);
   if(!src.length) return false;
-  CFG={ branch:String(o.branch||""), am:String(o.am||""), sources:src };
+  const gsx=Array.isArray(o.gsx)?o.gsx.filter(s=>s&&s.yy&&s.sheetId):[];
+  CFG={ branch:String(o.branch||""), am:String(o.am||""), sources:src, gsx:gsx };
   return true;
 }
 function loadCfg(){
@@ -465,16 +481,21 @@ function extractSheetId(s){
   return m?m[1]:t;
 }
 
-const CATEGORIES = ["AC+","ACC","CPU","Exchange","Film","iPhone Battery","iPhone Display","Privilege Member","Service Bill"];
+// หมวดของแต่ละมุมมอง — สลับด้วยปุ่ม ยอดขาย / งานซ่อม
+const CATS_SALES = ["AC+","ACC","CPU","Exchange","Film","iPhone Battery","iPhone Display","Privilege Member","Service Bill"];
+const CATS_GSX   = ["ACC","Airpods","CPU","iPad","iPhone Battery","iPhone Display","iPhone Other","Watch"];
+let CATEGORIES = CATS_SALES;
+
 // ไอคอนประจำหมวด — ช่วยให้กวาดตาหาหมวดได้เร็วกว่าอ่านชื่อ
 const CAT_EMOJI = {
-  "AC+":"🛡️", "ACC":"🎧", "CPU":"💻", "Exchange":"🔄", "Film":"✨",
-  "iPhone Battery":"🔋", "iPhone Display":"📱", "Privilege Member":"👑", "Service Bill":"🔧"
+  "AC+":"🛡️", "ACC":"🔌", "CPU":"💻", "Exchange":"🔄", "Film":"✨",
+  "iPhone Battery":"🔋", "iPhone Display":"📱", "Privilege Member":"👑", "Service Bill":"🔧",
+  "Airpods":"🎧", "iPad":"📓", "iPhone Other":"🛠", "Watch":"⌚"
 };
 const ico = c => CAT_EMOJI[c] || "📦";
 // เหรียญสำหรับ 3 อันดับแรก ที่เหลือเป็นตัวเลข
 const medal = i => i===0?"🥇":i===1?"🥈":i===2?"🥉":String(i+1);
-const UNIT = "บาท";
+let UNIT = "บาท";
 const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 const COL = { code:"Product (Code)", name:"Product (Name)", qty:"Number",
               value:"ราคาขายนำมาคิดกำไร", cat:"Category (Name)", sub:"Sub Category" };
@@ -522,10 +543,54 @@ function mapCategory(cat, sub, prod){
   return "ACC";
 }
 
-/* ====== STATE ====== */
+/* =========================================================================
+   ⭐ กฎแยกหมวดงานซ่อม (GSX) — ยกมาจากระบบต้นแบบตรงตัว
+   ต่างจากฝั่งยอดขายตรงที่รวม 6 คอลัมน์เป็นข้อความก้อนเดียวก่อน แล้วค่อยจับคำ
+   เพราะชนิดงานอาจอยู่ในช่องอาการเสีย ไม่ใช่แค่ชื่อรุ่น
+   ========================================================================= */
+const GCOL = { type:"Repair Type", prod:"Product Name", status:"Repair Status",
+               date:"Created Date", po:"Purchase Order",
+               issue1:"Customer Reported Component Issue",
+               issue2:"Technician Verified Component Issue",
+               cls:"Repair Classification", part:"Part Number" };
+
+function mapGsx(prod, ctx){
+  if(ctx.includes("SERVICE NON-REPAIR")) return "Service Non-Repair";   // ไม่นับเป็นงานซ่อม
+  if(prod.includes("AIRPODS")) return "Airpods";
+  if(prod.includes("IPAD"))    return "iPad";
+  if(prod.includes("WATCH"))   return "Watch";
+  if(prod.includes("MAC") || prod.includes("STUDIO")) return "CPU";
+  if(prod.includes("IPHONE") || ctx.includes("BATTERY") || ctx.includes("DISPLAY")){
+    if(ctx.includes("BATTERY")) return "iPhone Battery";
+    if(ctx.includes("DISPLAY")) return "iPhone Display";
+    return "iPhone Other";
+  }
+  return "ACC";
+}
+// งานที่ลูกค้ายกเลิก ไม่ได้ทำจริง จึงไม่นับ
+const isCancelled = st => st.includes("DECLINED") || st.includes("CANCEL");
+
+/* ====== STATE ======
+   เก็บสองชุดข้อมูลแยกกัน แล้ว "เล็ง" MONTHLY/PERIODS/CATEGORIES/UNIT ไปที่ชุดที่กำลังดู
+   ฟังก์ชัน render ทั้งหมดจึงใช้ตัวแปรเดิมได้โดยไม่ต้องแก้                        */
+const DATA = {
+  sales:{ monthly:{}, periods:[], cats:CATS_SALES, unit:"บาท",  label:"ยอดขาย",  sel:"" },
+  gsx:  { monthly:{}, periods:[], cats:CATS_GSX,   unit:"รายการ", label:"งานซ่อม", sel:"" }
+};
+let curView="sales";
 let MONTHLY={}, PERIODS=[], HEALTH=[], UNMAPPED=[];
 let selMonth="", curTab="over";
 let catChart=null, trendChart=null, autoTimer=null;
+
+function applyView(v){
+  if(DATA[curView]) DATA[curView].sel=selMonth;      // จำเดือนที่ดูค้างไว้ของมุมมองเดิม
+  curView=v;
+  const d=DATA[v];
+  MONTHLY=d.monthly; PERIODS=d.periods; CATEGORIES=d.cats; UNIT=d.unit;
+  selMonth = d.periods.includes(d.sel) ? d.sel : (d.periods[0]||"");
+  prodFilter="";                                     // ตัวกรองหมวดคนละชุดกัน
+}
+function hasGsx(){ return DATA.gsx.periods.length>0; }
 
 /* ====== HELPERS ====== */
 function fmt(v){ if(v===null||v===undefined||isNaN(v)) return "-"; return Number(v).toLocaleString("th-TH",{maximumFractionDigits:0}); }
@@ -648,7 +713,7 @@ function aggregateTab(text){
   const idx={}; Object.keys(COL).forEach(k=>idx[k]=H.indexOf(COL[k]));
   if(idx.value===-1) return null;
 
-  const cats={}; CATEGORIES.forEach(c=>cats[c]=0);
+  const cats={}; CATS_SALES.forEach(c=>cats[c]=0);
   const products=[], unmapped=[];
   let total=0, qty=0, lines=0;
 
@@ -670,6 +735,56 @@ function aggregateTab(text){
   return {total,qty,lines,cats,products,unmapped};
 }
 
+/* =========================================================================
+   ชีตงานซ่อม: แท็บเดียวทั้งปี ต้องแยกเดือนเองจาก Created Date
+   คืนค่าเป็น { "ก.ค.'26": {...}, ... } เพราะหนึ่งแท็บให้หลายเดือน
+   ========================================================================= */
+function aggregateGsx(text, yy){
+  const M=parseCSV(text);
+  if(M.length<2) return {};
+  const H=(M[0]||[]).map(h=>String(h||"").trim());
+  const idx={}; Object.keys(GCOL).forEach(k=>idx[k]=H.indexOf(GCOL[k]));
+  if(idx.date===-1 || idx.prod===-1) return {};
+
+  const out={};
+  const get=(row,k)=> idx[k]>-1 ? String(row[idx[k]]||"").toUpperCase() : "";
+
+  for(let r=1;r<M.length;r++){
+    const row=M[r]; if(!row||!row.length) continue;
+    // Created Date รูปแบบ MM/DD/YY HH:MM AM/PM
+    const dm=String(row[idx.date]||"").trim().match(/^(\d{2})\/(\d{2})\/(\d{2})/);
+    if(!dm) continue;
+    const mi=parseInt(dm[1],10)-1, dyy=dm[3];
+    if(mi<0||mi>11) continue;
+    if(yy && dyy!==yy) continue;                 // กันแถวปีอื่นหลุดเข้ามาในไฟล์ปีนี้
+    const period=periodOf(mi,dyy);
+
+    let b=out[period];
+    if(!b){ b=out[period]={total:0,qty:0,lines:0,cats:{},products:[],unmapped:[],
+                           nonRepair:0,cancelled:0};
+            CATS_GSX.forEach(c=>b.cats[c]=0); }
+
+    const status=get(row,"status");
+    if(isCancelled(status)){ b.cancelled++; continue; }      // งานที่ยกเลิก ไม่นับ
+
+    const prod=get(row,"prod");
+    const ctx=[get(row,"type"),prod,get(row,"issue1"),get(row,"issue2"),
+               get(row,"cls"),get(row,"part")].join(" ");
+    const mapped=mapGsx(prod,ctx);
+    if(mapped==="Service Non-Repair"){ b.nonRepair++; continue; }   // ไม่นับเป็นงานซ่อม
+
+    if(b.cats[mapped]===undefined) b.cats[mapped]=0;
+    b.cats[mapped]++; b.total++; b.qty++; b.lines++;
+    // เก็บชื่อรุ่นไว้ทำตาราง "รุ่นที่ซ่อมบ่อย" — ใช้โครงเดียวกับสินค้าฝั่งยอดขาย
+    // value = 1 งาน เพื่อให้ฟังก์ชันรวมยอดเดิมใช้ต่อได้เลย
+    const pname=String(row[idx.prod]||"").trim()||"(ไม่ระบุรุ่น)";
+    b.products.push({ code:pname+"|"+mapped, name:pname,
+                      cat:mapped, value:1, qty:1,
+                      srcCat:String(row[idx.type]||"").trim(), srcSub:status });
+  }
+  return out;
+}
+
 let loadSeq=0;   // กันการโหลดสองรอบทับกัน (กด Refresh รัวๆ / บันทึกตั้งค่าขณะกำลังโหลด)
 let lastFetchedAt=null;   // เวลาที่เซิร์ฟเวอร์ดึงข้อมูลจาก Google จริงๆ (โหมด Worker)
 
@@ -684,9 +799,11 @@ async function fetchViaServer(fresh){
     lastFetchedAt=data.fetchedAt||null;
     // แปลงให้เป็นรูปเดียวกับที่ยิงเอง
     return data.tabs.map(t=>{
-      const src=CFG.sources.find(s=>s.yy===t.yy)||{yy:t.yy,title:"ปี "+t.yy,sheetId:""};
-      return t.error ? {src,m:t.m,tab:t.tab,err:new Error(t.error)}
-                     : {src,m:t.m,tab:t.tab,text:t.text};
+      const pool = t.kind==="gsx" ? CFG.gsx : CFG.sources;
+      const src=(pool||[]).find(s=>s.yy===t.yy)||{yy:t.yy,title:"ปี "+t.yy,sheetId:""};
+      const o={kind:t.kind||"sales", src, m:t.m, tab:t.tab};
+      if(t.error) o.err=new Error(t.error); else o.text=t.text;
+      return o;
     });
   }catch(e){ return null; }
 }
@@ -698,8 +815,14 @@ async function fetchDirect(){
   CFG.sources.forEach(src=>{
     for(let m=1;m<=SETTINGS.MAX_MONTH;m++){
       const tab=SETTINGS.TAB_NAME(m);
-      jobs.push(fetchTab(src.sheetId,tab).then(text=>({src,m,tab,text}),err=>({src,m,tab,err})));
+      jobs.push(fetchTab(src.sheetId,tab).then(
+        text=>({kind:"sales",src,m,tab,text}), err=>({kind:"sales",src,m,tab,err})));
     }
+  });
+  (CFG.gsx||[]).forEach(src=>{
+    const tab=SETTINGS.GSX_TAB;                 // แท็บเดียวทั้งปี
+    jobs.push(fetchTab(src.sheetId,tab).then(
+      text=>({kind:"gsx",src,m:1,tab,text}), err=>({kind:"gsx",src,m:1,tab,err})));
   });
   return Promise.all(jobs);
 }
@@ -716,8 +839,11 @@ async function loadAll(fresh){
   if(CFG_FROM_SERVER) settled=await fetchViaServer(fresh);
   if(!settled)        settled=await fetchDirect();
   if(mySeq!==loadSeq) return;                      // มีรอบใหม่มาแล้ว ทิ้งผลรอบนี้
+  const gsxRes=settled.filter(r=>r.kind==="gsx");
   const bySrc=new Map(CFG.sources.map(s=>[s.sheetId,[]]));
-  settled.forEach(r=>bySrc.get(r.src.sheetId).push(r));
+  settled.filter(r=>r.kind!=="gsx").forEach(r=>{
+    const arr=bySrc.get(r.src.sheetId); if(arr) arr.push(r);
+  });
 
   for(const src of CFG.sources){
     let firstHash=null;
@@ -754,11 +880,39 @@ async function loadAll(fresh){
     else byHash[h]=p;
   });
 
-  MONTHLY=monthly; HEALTH=health; UNMAPPED=[...new Set(unmapped)];
-  PERIODS=Object.keys(monthly).sort((a,b)=>{
-    const A=splitPeriod(a),B=splitPeriod(b);
-    return A.yy!==B.yy?parseInt(B.yy,10)-parseInt(A.yy,10):B.idx-A.idx;
-  });
+  // ---- งานซ่อม (GSX) : แท็บเดียวต่อปี แยกเดือนจาก Created Date ----
+  const gmonthly={};
+  for(const r of gsxRes){
+    if(r.err){
+      if(!anyError) anyError=r.err;
+      health.push({level:"err",src:r.src.title||("GSX ปี "+r.src.yy),tab:r.tab,
+        msg:"โหลดไม่สำเร็จ — "+(r.err.message||r.err)});
+      continue;
+    }
+    const buckets=aggregateGsx(r.text, r.src.yy);
+    const keys=Object.keys(buckets);
+    if(!keys.length){
+      health.push({level:"warn",src:r.src.title||("GSX ปี "+r.src.yy),tab:r.tab,
+        msg:"อ่านไม่ได้ — ไม่พบคอลัมน์ Created Date / Product Name หรือไม่มีแถวของปีนี้"});
+      continue;
+    }
+    keys.forEach(p=>{
+      const b=buckets[p];
+      b.tab=r.tab; b.srcTitle=r.src.title||("GSX ปี "+r.src.yy); b.hash="gsx:"+p;
+      gmonthly[p]=b;
+    });
+  }
+
+  const sortP=(a,b)=>{ const A=splitPeriod(a),B=splitPeriod(b);
+    return A.yy!==B.yy?parseInt(B.yy,10)-parseInt(A.yy,10):B.idx-A.idx; };
+
+  DATA.sales.monthly=monthly;  DATA.sales.periods=Object.keys(monthly).sort(sortP);
+  DATA.gsx.monthly=gmonthly;   DATA.gsx.periods=Object.keys(gmonthly).sort(sortP);
+
+  HEALTH=health; UNMAPPED=[...new Set(unmapped)];
+  if(curView==="gsx" && !DATA.gsx.periods.length) curView="sales";
+  applyView(curView);
+  syncViewToggle();
 
   showLoad(false);
   document.getElementById("branchNo").textContent=CFG.branch;
@@ -813,6 +967,7 @@ function renderHero(){
   document.getElementById("heroMonth").innerHTML = esc(cur) +
     (running ? `<span class="runtag">${runDay?("ถึงวันที่ "+runDay+" · "):""}กำลังวิ่ง</span>` : "");
   document.getElementById("heroValue").textContent=fmt(tCur);
+  document.getElementById("heroUnit").textContent=UNIT;
 
   // บรรทัดคาดการณ์ใต้หน่วย
   const projBox=document.getElementById("heroProj");
@@ -920,6 +1075,9 @@ function movers(cur,base){
   return { up:list[0], down:list[list.length-1] };
 }
 
+// คำกริยาให้เข้ากับสิ่งที่กำลังดู
+const VERB = () => curView==="gsx" ? "รับงานซ่อม" : "ทำยอดได้";
+
 function renderInsight(){
   const cur=selMonth, prev=prevPeriodOf(cur), ly=lastYearOf(cur);
   const tCur=totalOf(cur)||0, tPrev=totalOf(prev), tLY=totalOf(ly);
@@ -928,15 +1086,15 @@ function renderInsight(){
   const parts=[];
 
   if(running && proj){
-    parts.push(`<b>${esc(cur)}</b> ทำได้ <b>${fmt(tCur)} ${UNIT}</b> ใน ${runDay} วันแรก` +
+    parts.push(`<b>${esc(cur)}</b> ${VERB()} <b>${fmt(tCur)} ${UNIT}</b> ใน ${runDay} วันแรก` +
       ` · ถ้าไปต่อแบบนี้ทั้งเดือนจะได้ <b>${fmt(Math.round(cmp))} ${UNIT}</b>`);
   }else if(running){
     document.getElementById("insight").innerHTML=
-      `<b>${esc(cur)}</b> ยังไม่จบเดือน ทำได้แล้ว <b>${fmt(tCur)} ${UNIT}</b><br>` +
+      `<b>${esc(cur)}</b> ยังไม่จบเดือน ${VERB()}แล้ว <b>${fmt(tCur)} ${UNIT}</b><br>` +
       `ใส่วันที่ในช่อง <b>“ข้อมูลถึงวันที่”</b> ด้านบน เพื่อให้ระบบคาดการณ์ยอดสิ้นเดือนและเทียบกับเดือนก่อน/ปีก่อนได้`;
     return;
   }else{
-    parts.push(`เดือน <b>${esc(cur)}</b> ทำยอดได้ <b>${fmt(tCur)} ${UNIT}</b>`);
+    parts.push(`เดือน <b>${esc(cur)}</b> ${VERB()} <b>${fmt(tCur)} ${UNIT}</b>`);
   }
 
   const vs = proj ? "คาดการณ์" : "";
@@ -1011,7 +1169,17 @@ function renderMini(){
     }
   }
 
-  if(m) cards.push({cap:"🧾 ปริมาณงาน", main:fmt(m.qty)+" ชิ้น", note:m.lines+" รายการสินค้า"});
+  if(m && curView==="gsx"){
+    // ตามที่ตกลง: ตัด Service Non-Repair ออกจากยอด แต่ต้องเห็นว่ามีกี่งาน
+    const nr=m.nonRepair||0, cc=m.cancelled||0;
+    const bits=[];
+    if(nr) bits.push("Service Non-Repair "+fmt(nr)+" งาน");
+    if(cc) bits.push("ยกเลิก "+fmt(cc)+" งาน");
+    cards.push({cap:"🚫 งานที่ไม่นับรวม", main:fmt(nr+cc)+" งาน",
+      note:bits.length?bits.join(" · "):"ไม่มีงานที่ถูกตัดออก"});
+  }else if(m){
+    cards.push({cap:"🧾 ปริมาณงาน", main:fmt(m.qty)+" ชิ้น", note:m.lines+" รายการสินค้า"});
+  }
 
   document.getElementById("miniGrid").innerHTML=cards.map(c=>
     `<div class="mini"><div class="mini-cap">${c.cap}</div><div class="mini-main">${esc(c.main)}</div><div class="mini-note">${c.note}</div></div>`
@@ -1084,7 +1252,7 @@ function renderProdList(){
       <div class="rk">${medal(i)}</div>
       <div class="info">
         <div class="pn" title="${esc(p.name)}">${esc(p.name||p.code)}</div>
-        <div class="meta"><span class="tag">${ico(p.cat)} ${esc(p.cat)}</span> · ${fmt(p.qty)} ชิ้น · ${share.toFixed(1)}% ของยอดเดือน</div>
+        <div class="meta"><span class="tag">${ico(p.cat)} ${esc(p.cat)}</span> · ${fmt(p.qty)} ${curView==="gsx"?"งาน":"ชิ้น"} · ${share.toFixed(1)}% ของ${curView==="gsx"?"งานทั้งเดือน":"ยอดเดือน"}</div>
       </div>
       <div class="pv">${fmt(p.value)}</div>
       <div class="pc ${chg.k}">${chg.txt}</div>
@@ -1279,7 +1447,8 @@ function renderProdTable(){
   if(!list.length){ wrap.innerHTML='<div class="empty">ไม่มีสินค้าในหมวดนี้</div>'; return; }
 
   wrap.innerHTML=`<table class="prodtbl"><thead><tr>
-    <th>อันดับ</th><th class="lft">สินค้า</th><th>จำนวน</th><th>ยอดขาย</th><th>เทียบ ${esc(prev||"เดือนก่อน")}</th>
+    <th>อันดับ</th><th class="lft">${curView==="gsx"?"รุ่น":"สินค้า"}</th><th>จำนวน</th>
+    <th>${curView==="gsx"?"งานซ่อม":"ยอดขาย"}</th><th>เทียบ ${esc(prev||"เดือนก่อน")}</th>
   </tr></thead><tbody>${list.map((p,i)=>{
     const pv=monthOf(prev)?(prevMap.has(p.key)?prevMap.get(p.key):0):null;
     const chg=changeChip(km?p.value*km:p.value, pv);
@@ -1287,7 +1456,7 @@ function renderProdTable(){
       <td class="rank">${medal(i)}</td>
       <td class="pcell">
         <div class="pname" title="${esc(p.name)}">${esc(p.name||p.code)}</div>
-        <div class="psub"><span class="tag">${ico(p.cat)} ${esc(p.cat)}</span> ${(p.value/m.total*100).toFixed(1)}% ของยอดเดือน</div>
+        <div class="psub"><span class="tag">${ico(p.cat)} ${esc(p.cat)}</span> ${(p.value/m.total*100).toFixed(1)}% ของ${curView==="gsx"?"งานทั้งเดือน":"ยอดเดือน"}</div>
       </td>
       <td>${fmt(p.qty)}</td>
       <td class="vcell"><span class="vbar" style="width:${(p.value/maxV*100).toFixed(1)}%"></span><span><b>${fmt(p.value)}</b></span></td>
@@ -1432,9 +1601,26 @@ function showLoad(on,text){
   document.getElementById("load").classList.toggle("hide",!on);
   document.getElementById("btnRefresh").classList.toggle("loading",on);
 }
+/* ปุ่มสลับ ยอดขาย / งานซ่อม — โผล่เฉพาะเมื่อมีข้อมูลงานซ่อม */
+function syncViewToggle(){
+  const box=document.getElementById("viewToggle");
+  box.style.display = hasGsx() ? "" : "none";
+  box.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("on", b.dataset.view===curView));
+  const gsx = curView==="gsx";
+  document.getElementById("catTitle").textContent     = gsx?"งานซ่อมแยกตามหมวด":"ยอดขายแยกตามหมวด";
+  document.getElementById("prodTitle").textContent    = gsx?"รุ่นที่ซ่อมบ่อย":"สินค้าขายดี";
+  document.getElementById("allProdTitle").textContent = gsx?"รุ่นทั้งหมด":"สินค้าทั้งหมด";
+  document.title = (gsx?"งานซ่อม":"ยอดขาย")+" สาขา "+CFG.branch;
+}
+function switchView(v){
+  if(v===curView || !DATA[v]) return;
+  applyView(v);
+  syncViewToggle(); buildMonthSelect(); renderAll();
+}
+
 function switchTab(name){
   curTab=name;
-  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===name));
+  document.querySelectorAll(".tab[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===name));
   document.getElementById("tabOver").style.display   = name==="over"?"":"none";
   document.getElementById("tabDetail").style.display = name==="detail"?"":"none";
   renderAll();
@@ -1466,6 +1652,8 @@ function openSetup(firstRun){
   document.getElementById("cfgAm").value=CFG.am||"";
   const rows=CFG.sources.length?CFG.sources:[null,null];
   document.getElementById("cfgRows").innerHTML=rows.map(cfgRowHtml).join("");
+  const grows=(CFG.gsx&&CFG.gsx.length)?CFG.gsx:[null];
+  document.getElementById("cfgGsxRows").innerHTML=grows.map(cfgRowHtml).join("");
   bindRemove();
   document.getElementById("cfgErr").style.display="none";
   document.getElementById("cfgCancel").style.display=firstRun?"none":"";
@@ -1477,26 +1665,34 @@ function openSetup(firstRun){
 }
 function closeSetup(){ document.getElementById("setup").style.display="none"; }
 function bindRemove(){
-  document.querySelectorAll("#cfgRows .rmrow").forEach(b=>b.onclick=()=>{
-    if(document.querySelectorAll("#cfgRows .cfgrow").length>1) b.parentElement.remove();
+  [["#cfgRows",1],["#cfgGsxRows",0]].forEach(([sel,minRows])=>{
+    document.querySelectorAll(sel+" .rmrow").forEach(b=>b.onclick=()=>{
+      const box=document.querySelector(sel);
+      if(box.querySelectorAll(".cfgrow").length>minRows) b.parentElement.remove();
+      else { b.parentElement.querySelectorAll("input").forEach(i=>i.value=""); }
+    });
   });
 }
 function readCfgForm(){
   const branch=document.getElementById("cfgBranch").value.trim();
   const am=document.getElementById("cfgAm").value.trim();
-  const sources=[]; const badYears=[];
-  document.querySelectorAll("#cfgRows .cfgrow").forEach(r=>{
+  const readRows=(sel,bag,bad)=>{
+  document.querySelectorAll(sel+" .cfgrow").forEach(r=>{
     const yy=r.querySelector(".yr").value.trim();
     const sid=extractSheetId(r.querySelector(".sid").value);
     const title=r.querySelector(".sid").dataset.title||"";
     if(!yy&&!sid) return;                                  // แถวว่าง ข้ามไป
-    if(!/^\d{2}$/.test(yy)){ badYears.push(yy||"(ว่าง)"); return; }
+    if(!/^\d{2}$/.test(yy)){ bad.push(yy||"(ว่าง)"); return; }
     if(!sid) return;
     // ค.ศ. 2 หลัก → ชื่อเรียกเป็น พ.ศ. 2 หลัก (2025 → 2568 → "ปี 68")
     const be=String(2000+parseInt(yy,10)+543).slice(-2);
-    sources.push({yy, title:title||("ยอดขายปี "+be), sheetId:sid});
+    bag.push({yy, title:title||("ปี "+be), sheetId:sid});
   });
-  return {branch,am,sources,badYears};
+  };
+  const sources=[], gsx=[], badYears=[];
+  readRows("#cfgRows", sources, badYears);
+  readRows("#cfgGsxRows", gsx, badYears);
+  return {branch,am,sources,gsx,badYears};
 }
 function saveSetup(){
   const c=readCfgForm();
@@ -1507,7 +1703,9 @@ function saveSetup(){
   if(c.badYears.length) problems.push("ปีต้องเป็นตัวเลข 2 หลัก เช่น 25 หรือ 26 — ที่กรอกมา: "+c.badYears.join(", "));
   if(!c.sources.length) problems.push("ต้องมีอย่างน้อย 1 ปี พร้อมลิงก์หรือรหัส Sheet");
   const ys=c.sources.map(s=>s.yy);
-  if(new Set(ys).size!==ys.length) problems.push("มีปีซ้ำกัน");
+  if(new Set(ys).size!==ys.length) problems.push("ชีตยอดขายมีปีซ้ำกัน");
+  const gs=(c.gsx||[]).map(s=>s.yy);
+  if(new Set(gs).size!==gs.length) problems.push("ชีตงานซ่อมมีปีซ้ำกัน");
   if(problems.length){
     err.innerHTML=problems.map(p=>"• "+esc(p)).join("<br>");
     err.style.display=""; return;
@@ -1524,6 +1722,10 @@ function clearSetup(){
 }
 document.getElementById("cfgAdd").addEventListener("click",()=>{
   document.getElementById("cfgRows").insertAdjacentHTML("beforeend",cfgRowHtml(null));
+  bindRemove();
+});
+document.getElementById("cfgGsxAdd").addEventListener("click",()=>{
+  document.getElementById("cfgGsxRows").insertAdjacentHTML("beforeend",cfgRowHtml(null));
   bindRemove();
 });
 document.getElementById("cfgSave").addEventListener("click",saveSetup);
@@ -1557,7 +1759,8 @@ document.getElementById("runDayInput").addEventListener("blur",e=>{
     renderAll();
   }
 });
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+document.querySelectorAll(".tab[data-tab]").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+document.querySelectorAll(".tab[data-view]").forEach(b=>b.addEventListener("click",()=>switchView(b.dataset.view)));
 function resetAuto(){ if(autoTimer) clearInterval(autoTimer); if(SETTINGS.AUTO_REFRESH_MIN>0) autoTimer=setInterval(loadAll,SETTINGS.AUTO_REFRESH_MIN*60000); }
 
 window.addEventListener("DOMContentLoaded",()=>{
