@@ -202,6 +202,27 @@ td.shr span:last-child{position:relative}
 .notice code{background:rgba(128,128,128,.18);padding:1px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:.85em}
 .notice ul{margin:7px 0 0 19px}
 
+/* ---------- หน้าสรุป ---------- */
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:18px;margin-bottom:22px}
+.sumcard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px 28px}
+.sumcard .sc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.sumcard .sc-name{font-size:1rem;font-weight:650;display:flex;align-items:center;gap:7px}
+.sumcard .sc-val{font-size:2.7rem;font-weight:700;letter-spacing:-.03em;line-height:1}
+.sumcard .sc-unit{font-size:.85rem;color:var(--ink-2);margin:3px 0 14px}
+.sumcard .sc-proj{margin-bottom:14px;line-height:1.5}
+.sumcard .sc-proj b{font-size:1.25rem;color:var(--accent);letter-spacing:-.02em}
+.sumcard .sc-proj small{display:block;font-size:.74rem;color:var(--ink-3);margin-top:2px}
+.sumcard .sc-ask{font-size:.82rem;color:var(--accent);font-weight:600}
+.sumcard .deltas{gap:8px}
+.sumcard .delta{padding:7px 12px;font-size:.83rem}
+.sumcard .sc-none{color:var(--ink-3);font-size:.9rem;padding:14px 0}
+.scday{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border-radius:9px;padding:4px 9px}
+.scday label{font-size:.74rem;color:var(--ink-2);font-weight:600;white-space:nowrap;margin:0}
+.scday input{width:46px;padding:4px 6px;border:1px solid var(--border);border-radius:7px;background:var(--card);
+  color:var(--ink);font-family:var(--font);font-size:.85rem;font-weight:700;text-align:center;-moz-appearance:textfield}
+.scday input::-webkit-outer-spin-button,.scday input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.scday input:focus{outline:none;border-color:var(--accent)}
+
 /* ---------- SETUP SCREEN ---------- */
 .setup-ov{position:fixed;inset:0;background:var(--bg);z-index:950;overflow-y:auto;padding:32px 18px 60px;display:flex;justify-content:center;align-items:flex-start}
 .setup-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 34px;max-width:620px;width:100%}
@@ -331,6 +352,7 @@ td.shr span:last-child{position:relative}
 
   <div class="tabrow">
     <div class="tabs">
+      <button class="tab" data-tab="summary" id="tabSumBtn" style="display:none">สรุป</button>
       <button class="tab on" data-tab="over">ภาพรวม</button>
       <button class="tab" data-tab="detail">รายละเอียด</button>
     </div>
@@ -352,6 +374,12 @@ td.shr span:last-child{position:relative}
   </div>
 
   <div id="notices"></div>
+
+  <!-- ============ สรุป ============ -->
+  <div id="tabSummary" style="display:none">
+    <div class="sumgrid" id="sumGrid"></div>
+    <div class="insight" id="sumInsight"></div>
+  </div>
 
   <!-- ============ ภาพรวม ============ -->
   <div id="tabOver">
@@ -574,8 +602,8 @@ const isCancelled = st => st.includes("DECLINED") || st.includes("CANCEL");
    เก็บสองชุดข้อมูลแยกกัน แล้ว "เล็ง" MONTHLY/PERIODS/CATEGORIES/UNIT ไปที่ชุดที่กำลังดู
    ฟังก์ชัน render ทั้งหมดจึงใช้ตัวแปรเดิมได้โดยไม่ต้องแก้                        */
 const DATA = {
-  sales:{ monthly:{}, periods:[], cats:CATS_SALES, unit:"บาท",  label:"ยอดขาย",  sel:"" },
-  gsx:  { monthly:{}, periods:[], cats:CATS_GSX,   unit:"รายการ", label:"งานซ่อม", sel:"" }
+  sales:{ monthly:{}, periods:[], cats:CATS_SALES, unit:"บาท",  label:"ยอดขาย",  icon:"💰", sel:"", runDay:null },
+  gsx:  { monthly:{}, periods:[], cats:CATS_GSX,   unit:"รายการ", label:"งานซ่อม", icon:"🔧", sel:"", runDay:null }
 };
 let curView="sales";
 let MONTHLY={}, PERIODS=[], HEALTH=[], UNMAPPED=[];
@@ -583,11 +611,13 @@ let selMonth="", curTab="over";
 let catChart=null, trendChart=null, autoTimer=null;
 
 function applyView(v){
-  if(DATA[curView]) DATA[curView].sel=selMonth;      // จำเดือนที่ดูค้างไว้ของมุมมองเดิม
+  if(DATA[curView]){ DATA[curView].sel=selMonth; DATA[curView].runDay=runDay; }
   curView=v;
   const d=DATA[v];
   MONTHLY=d.monthly; PERIODS=d.periods; CATEGORIES=d.cats; UNIT=d.unit;
   selMonth = d.periods.includes(d.sel) ? d.sel : (d.periods[0]||"");
+  // สองชีตอัปเดตถึงคนละวันได้ วันตัดยอดจึงแยกกัน
+  runDay = d.runDay || null;
   prodFilter="";                                     // ตัวกรองหมวดคนละชุดกัน
 }
 function hasGsx(){ return DATA.gsx.periods.length>0; }
@@ -655,6 +685,19 @@ function runMultiplier(p){
   return d/runDay;
 }
 function hasProjection(p){ return runMultiplier(p)!==null; }
+
+/* ---- อ่านข้ามชุดข้อมูล (หน้าสรุปต้องดูทั้งสองฝั่งพร้อมกัน) ---- */
+function dayOfView(v){ return v===curView ? runDay : (DATA[v].runDay||null); }
+function multOfView(v,p){
+  const d=dayOfView(v);
+  if(!isRunningMonth(p) || !d) return null;
+  const dim=daysInMonth(p);
+  if(!dim || d<1 || d>dim) return null;
+  return dim/d;
+}
+function totalOfView(v,p){ const m=DATA[v].monthly[p]; return m?m.total:null; }
+function projOfView(v,p){ const k=multOfView(v,p), t=totalOfView(v,p); return (k===null||t===null)?t:t*k; }
+function hasProjOfView(v,p){ return multOfView(v,p)!==null; }
 function projTotal(p){ const k=runMultiplier(p), v=totalOf(p); return (k===null||v===null)?v:v*k; }
 function projCat(p,c){ const k=runMultiplier(p), v=catOf(p,c);   return (k===null||v===null)?v:v*k; }
 // วันสูงสุดที่กรอกได้ — กันกรอกวันในอนาคตของเดือนที่กำลังวิ่ง
@@ -912,12 +955,13 @@ async function loadAll(fresh){
   HEALTH=health; UNMAPPED=[...new Set(unmapped)];
   if(curView==="gsx" && !DATA.gsx.periods.length) curView="sales";
   applyView(curView);
+  document.getElementById("tabSumBtn").style.display = hasGsx()?"":"none";
+  if(hasGsx() && !summaryShown){ summaryShown=true; switchTab("summary"); }
   syncViewToggle();
 
   showLoad(false);
   document.getElementById("branchNo").textContent=CFG.branch;
   document.getElementById("amName").textContent=CFG.am||"";
-  document.title="ยอดขาย สาขา "+CFG.branch;
 
   if(!PERIODS.length){
     setLive("err", anyError?"เชื่อมต่อไม่ได้":"ไม่พบข้อมูล");
@@ -933,10 +977,13 @@ async function loadAll(fresh){
 
 function buildMonthSelect(){
   const sel=document.getElementById("selMonth");
-  if(!PERIODS.includes(selMonth)) selMonth=PERIODS[0];
-  sel.innerHTML=PERIODS.map(p=>
+  const onSum = curTab==="summary";
+  const list = onSum ? unionPeriods() : PERIODS;
+  if(onSum){ if(!list.includes(sumMonth)) sumMonth=list[0]||""; }
+  else     { if(!list.includes(selMonth)) selMonth=list[0]||""; }
+  sel.innerHTML=list.map(p=>
     `<option value="${esc(p)}">${esc(p)}${isRunningMonth(p)?" · กำลังวิ่ง":""}</option>`).join("");
-  sel.value=selMonth;          // ตั้งค่าตรงๆ กัน state กับ dropdown หลุดจากกัน
+  sel.value = onSum ? sumMonth : selMonth;
   syncDayBox();
 }
 
@@ -945,7 +992,7 @@ function syncDayBox(){
   const box=document.getElementById("dayBox");
   const inp=document.getElementById("runDayInput");
   const suf=document.getElementById("daySuffix");
-  if(!isRunningMonth(selMonth)){ box.style.display="none"; return; }
+  if(curTab==="summary" || !isRunningMonth(selMonth)){ box.style.display="none"; return; }
   const s=splitPeriod(selMonth), dim=daysInMonth(selMonth), mx=maxRunDay(selMonth);
   box.style.display="";
   inp.max=mx;
@@ -1500,9 +1547,120 @@ function renderHistTable(){
 }
 
 /* =========================================================================
+   หน้าสรุป — ยอดขายกับงานซ่อมเคียงกัน ใช้เดือนเดียวกัน
+   วันตัดยอดแยกช่องกัน เพราะสองชีตอาจอัปเดตถึงคนละวัน
+   ========================================================================= */
+let sumMonth="", summaryShown=false;   // เปิดเว็บมาครั้งแรกให้เจอหน้าสรุปก่อน
+
+// รายชื่อเดือนที่มีอย่างน้อยหนึ่งชุดข้อมูล เรียงใหม่→เก่า
+function unionPeriods(){
+  const set=new Set([...DATA.sales.periods, ...DATA.gsx.periods]);
+  return [...set].sort((a,b)=>{ const A=splitPeriod(a),B=splitPeriod(b);
+    return A.yy!==B.yy?parseInt(B.yy,10)-parseInt(A.yy,10):B.idx-A.idx; });
+}
+
+function sumCard(v, period){
+  const d=DATA[v], m=d.monthly[period];
+  const prev=prevPeriodOf(period), ly=lastYearOf(period);
+  const running=isRunningMonth(period), proj=hasProjOfView(v,period);
+  const day=dayOfView(v);
+
+  const dayBox = (running && m)
+    ? `<span class="scday"><label>ถึงวันที่</label>
+        <input type="number" min="1" max="${maxRunDay(period)}" data-day="${v}" value="${day||""}" placeholder="—"></span>`
+    : "";
+  const head=m
+    ? `<div class="sc-head"><div class="sc-name">${d.icon} ${esc(d.label)}</div>${dayBox}</div>`
+    : `<div class="sc-head"><div class="sc-name">${d.icon} ${esc(d.label)}</div></div>`;
+
+  if(!m) return `<div class="sumcard">${head}<div class="sc-none">ยังไม่มีข้อมูลเดือน ${esc(period)}</div></div>`;
+
+  const cur=m.total, cmp = proj ? projOfView(v,period) : cur;
+  const tPrev=totalOfView(v,prev), tLY=totalOfView(v,ly);
+
+  let projHtml="";
+  if(running && proj){
+    projHtml=`<div class="sc-proj">คาดการณ์สิ้นเดือน <b>${fmt(Math.round(cmp))}</b> ${esc(d.unit)}
+      <small>จากยอด ${day} วันแรก เฉลี่ยต่อวัน ${fmt(Math.round(cur/day))}</small></div>`;
+  }else if(running){
+    projHtml=`<div class="sc-proj"><span class="sc-ask">← ใส่วันที่เพื่อดูคาดการณ์สิ้นเดือน</span></div>`;
+  }
+
+  const chip=(label,base)=>{
+    const p=calcPct(cmp,base);
+    if(p===null) return `<span class="delta flat"><span class="arw">■</span>—<small>${esc(label)}</small></span>`;
+    const k=dir(p);
+    return `<span class="delta ${k}"><span class="arw">${arrow(k)}</span>${pctBare(p)}<small>${esc(label)}</small></span>`;
+  };
+  const pfx = proj ? "คาดการณ์ vs " : "";
+  const chips = (running && !proj)
+    ? `<span class="delta flat"><span class="arw">■</span>ยังเทียบไม่ได้<small>รอใส่วันตัดยอด</small></span>`
+    : chip(pfx+"เดือนก่อน",tPrev)+chip(pfx+"ปีก่อน",tLY);
+
+  return `<div class="sumcard">${head}
+    <div class="sc-val">${fmt(cur)}</div>
+    <div class="sc-unit">${esc(d.unit)}${running?" · ถึงตอนนี้":""}</div>
+    ${projHtml}
+    <div class="deltas">${chips}</div></div>`;
+}
+
+function renderSummary(){
+  const per=unionPeriods();
+  if(!per.includes(sumMonth)) sumMonth=per[0]||"";
+  document.getElementById("sumGrid").innerHTML =
+    sumCard("sales",sumMonth) + (hasGsx()?sumCard("gsx",sumMonth):"");
+
+  // ผูกช่องกรอกวันของแต่ละการ์ด — เขียนกลับเข้า DATA[v].runDay ตรงๆ
+  document.querySelectorAll("#sumGrid input[data-day]").forEach(inp=>{
+    inp.addEventListener("input",e=>{
+      const v=e.target.dataset.day, mx=maxRunDay(sumMonth);
+      const n=parseInt(e.target.value,10);
+      const val=(Number.isFinite(n)&&n>=1&&n<=mx)?n:null;
+      if(v===curView) runDay=val;
+      DATA[v].runDay=val;
+      renderSummary();
+      const keep=document.querySelector(`#sumGrid input[data-day="${v}"]`);
+      if(keep){ keep.focus(); keep.value=e.target.value; }
+    });
+  });
+
+  renderSumInsight();
+}
+
+function renderSumInsight(){
+  const p=sumMonth, prev=prevPeriodOf(p);
+  const bits=[];
+  ["sales","gsx"].forEach(v=>{
+    if(v==="gsx" && !hasGsx()) return;
+    const d=DATA[v], m=d.monthly[p]; if(!m) return;
+    const running=isRunningMonth(p), proj=hasProjOfView(v,p);
+    const cmp=proj?projOfView(v,p):m.total;
+    const tPrev=totalOfView(v,prev);
+    const word=v==="gsx"?"งานซ่อม":"ยอดขาย";
+    let t=`<b>${word} ${fmt(Math.round(cmp))} ${esc(d.unit)}</b>`;
+    if(proj) t+=" (คาดการณ์)";
+    if(running && !proj){
+      // ยอดครึ่งเดือนเทียบเดือนเต็มไม่มีความหมาย รอใส่วันตัดยอดก่อน
+      t+=` <span class="em-warn">ยังเทียบไม่ได้</span>`;
+    }else{
+      const pct=calcPct(cmp,tPrev), k=dir(pct);
+      if(pct!==null) t+= k==="up" ? ` <span class="em-up">${fmtPct(pct)} จากเดือนก่อน</span>`
+                     : k==="down" ? ` <span class="em-down">${fmtPct(pct)} จากเดือนก่อน</span>`
+                     : ` เท่าเดือนก่อน`;
+    }
+    bits.push(t);
+  });
+  const el=document.getElementById("sumInsight");
+  el.innerHTML = bits.length
+    ? `เดือน <b>${esc(p)}</b> · ` + bits.join(" &nbsp;·&nbsp; ")
+    : `ยังไม่มีข้อมูลเดือน ${esc(p)}`;
+}
+
+/* =========================================================================
    RENDER ROOT
    ========================================================================= */
 function renderAll(){
+  if(curTab==="summary"){ renderSummary(); return; }
   if(!monthOf(selMonth)){ renderEmpty(); return; }
   if(curTab==="over"){ renderHero(); renderInsight(); renderMini(); renderCatList(); renderProdList(); renderTrend(); }
   else { renderCatChart(); renderCatTable(); renderProdTable(); renderHistTable(); }
@@ -1604,13 +1762,13 @@ function showLoad(on,text){
 /* ปุ่มสลับ ยอดขาย / งานซ่อม — โผล่เฉพาะเมื่อมีข้อมูลงานซ่อม */
 function syncViewToggle(){
   const box=document.getElementById("viewToggle");
-  box.style.display = hasGsx() ? "" : "none";
+  box.style.display = (hasGsx() && curTab!=="summary") ? "" : "none";
   box.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("on", b.dataset.view===curView));
   const gsx = curView==="gsx";
   document.getElementById("catTitle").textContent     = gsx?"งานซ่อมแยกตามหมวด":"ยอดขายแยกตามหมวด";
   document.getElementById("prodTitle").textContent    = gsx?"รุ่นที่ซ่อมบ่อย":"สินค้าขายดี";
   document.getElementById("allProdTitle").textContent = gsx?"รุ่นทั้งหมด":"สินค้าทั้งหมด";
-  document.title = (gsx?"งานซ่อม":"ยอดขาย")+" สาขา "+CFG.branch;
+  document.title = (curTab==="summary"?"สรุป":(gsx?"งานซ่อม":"ยอดขาย"))+" สาขา "+CFG.branch;
 }
 function switchView(v){
   if(v===curView || !DATA[v]) return;
@@ -1621,8 +1779,14 @@ function switchView(v){
 function switchTab(name){
   curTab=name;
   document.querySelectorAll(".tab[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===name));
-  document.getElementById("tabOver").style.display   = name==="over"?"":"none";
-  document.getElementById("tabDetail").style.display = name==="detail"?"":"none";
+  const sum = name==="summary";
+  document.getElementById("tabSummary").style.display = sum?"":"none";
+  document.getElementById("tabOver").style.display    = name==="over"?"":"none";
+  document.getElementById("tabDetail").style.display  = name==="detail"?"":"none";
+  // หน้าสรุปแสดงทั้งสองชุดอยู่แล้ว ปุ่มสลับกับช่องวันตัดยอดของ monthbar จึงไม่ต้องมี
+  document.getElementById("viewToggle").style.display = (!sum && hasGsx())?"":"none";
+  syncViewToggle();
+  buildMonthSelect();
   renderAll();
 }
 function initTheme(){
@@ -1737,8 +1901,14 @@ document.getElementById("btnRefresh").addEventListener("click",()=>{ loadAll(tru
 document.getElementById("btnExport").addEventListener("click",exportCSV);
 document.getElementById("btnHealth").addEventListener("click",showHealth);
 document.getElementById("selMonth").addEventListener("change",e=>{
+  if(curTab==="summary"){
+    sumMonth=e.target.value;
+    DATA.sales.runDay=null; DATA.gsx.runDay=null; runDay=null;
+    renderAll(); return;
+  }
   selMonth=e.target.value;
   runDay=null;              // คนละเดือนคนละวันตัดยอด อย่าเอาของเดือนก่อนมาใช้ต่อ
+  DATA[curView].runDay=null;
   syncDayBox(); renderAll();
 });
 document.getElementById("runDayInput").addEventListener("input",e=>{
