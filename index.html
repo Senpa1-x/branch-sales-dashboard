@@ -223,6 +223,12 @@ td.shr span:last-child{position:relative}
 .scday input::-webkit-outer-spin-button,.scday input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .scday input:focus{outline:none;border-color:var(--accent)}
 
+/* บล็อกรายละเอียดของแต่ละชุดในหน้าสรุป */
+.sumblock{margin-top:30px}
+.sumblock .sb-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.sumblock .sb-head h2{font-size:1.05rem;font-weight:650;display:flex;align-items:center;gap:7px}
+.sumblock .mini-grid{margin-bottom:16px}
+
 /* ---------- SETUP SCREEN ---------- */
 .setup-ov{position:fixed;inset:0;background:var(--bg);z-index:950;overflow-y:auto;padding:32px 18px 60px;display:flex;justify-content:center;align-items:flex-start}
 .setup-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 34px;max-width:620px;width:100%}
@@ -379,6 +385,7 @@ td.shr span:last-child{position:relative}
   <div id="tabSummary" style="display:none">
     <div class="sumgrid" id="sumGrid"></div>
     <div class="insight" id="sumInsight"></div>
+    <div id="sumBlocks"></div>
   </div>
 
   <!-- ============ ภาพรวม ============ -->
@@ -698,6 +705,8 @@ function multOfView(v,p){
 function totalOfView(v,p){ const m=DATA[v].monthly[p]; return m?m.total:null; }
 function projOfView(v,p){ const k=multOfView(v,p), t=totalOfView(v,p); return (k===null||t===null)?t:t*k; }
 function hasProjOfView(v,p){ return multOfView(v,p)!==null; }
+function catOfView(v,p,c){ const m=DATA[v].monthly[p]; return m?(m.cats[c]||0):null; }
+function projCatOfView(v,p,c){ const k=multOfView(v,p), x=catOfView(v,p,c); return (k===null||x===null)?x:x*k; }
 function projTotal(p){ const k=runMultiplier(p), v=totalOf(p); return (k===null||v===null)?v:v*k; }
 function projCat(p,c){ const k=runMultiplier(p), v=catOf(p,c);   return (k===null||v===null)?v:v*k; }
 // วันสูงสุดที่กรอกได้ — กันกรอกวันในอนาคตของเดือนที่กำลังวิ่ง
@@ -1110,11 +1119,12 @@ function renderSpark(){
 // หาหมวดที่ดันยอด/ฉุดยอดมากที่สุด — วัดด้วย "จำนวนเงินที่เปลี่ยนไป" ไม่ใช่ %
 // เพราะหมวดเล็กๆ ที่โต 300% อาจมีผลต่อยอดรวมน้อยกว่าหมวดใหญ่ที่โต 5%
 // เดือนที่ยังไม่จบใช้ยอดคาดการณ์ ไม่งั้นทุกหมวดจะติดลบหมดเพราะเทียบครึ่งเดือนกับเดือนเต็ม
-function movers(cur,base){
-  if(!monthOf(base)) return null;
-  const list=CATEGORIES.map(c=>{
-    const now=(hasProjection(cur)?projCat(cur,c):catOf(cur,c))||0;
-    const was=catOf(base,c)||0;
+function movers(cur,base,v){
+  v=v||curView;
+  if(!DATA[v].monthly[base]) return null;
+  const list=DATA[v].cats.map(c=>{
+    const now=(hasProjOfView(v,cur)?projCatOfView(v,cur,c):catOfView(v,cur,c))||0;
+    const was=catOfView(v,base,c)||0;
     return {cat:c, diff:now-was, now, was};
   }).filter(d=>Math.round(d.diff)!==0);
   if(!list.length) return null;
@@ -1175,19 +1185,21 @@ function renderInsight(){
 /* =========================================================================
    ภาพรวม — การ์ดย่อย 3 ใบ
    ========================================================================= */
-function renderMini(){
-  const cur=selMonth, prev=prevPeriodOf(cur);
-  const m=monthOf(cur);
+function renderMini(v,period,elId){
+  v=v||curView; const cur=period||selMonth; elId=elId||"miniGrid";
+  const D=DATA[v], U=D.unit;
+  const prev=prevPeriodOf(cur);
+  const m=D.monthly[cur];
   const cards=[];
-  const mv=movers(cur,prev);
+  const mv=movers(cur,prev,v);
 
   if(mv && mv.up.diff>0){
     cards.push({cap:"🚀 หมวดที่ดันยอด", main:mv.up.cat,
-      note:`${fmt(mv.up.was)} → ${fmt(mv.up.now)} (+${fmt(mv.up.diff)} ${UNIT})`});
+      note:`${fmt(mv.up.was)} → ${fmt(mv.up.now)} (+${fmt(mv.up.diff)} ${U})`});
   }
   if(mv && mv.down.diff<0){
     cards.push({cap:"🔻 หมวดที่ฉุดยอด", main:mv.down.cat,
-      note:`${fmt(mv.down.was)} → ${fmt(mv.down.now)} (${fmt(mv.down.diff)} ${UNIT})`});
+      note:`${fmt(mv.down.was)} → ${fmt(mv.down.now)} (${fmt(mv.down.diff)} ${U})`});
   }
 
   // สะสมตั้งแต่ต้นปี เทียบช่วงเดียวกันปีก่อน
@@ -1198,25 +1210,25 @@ function renderMini(){
     let c=0,p=0,usedProj=false; const inc=[];
     for(let i=0;i<=s.idx;i++){
       const pd=periodOf(i,s.yy);
-      const a=totalOf(pd); if(a===null) continue;
-      if(hasProjection(pd)){ c+=projTotal(pd); usedProj=true; }
+      const a=totalOfView(v,pd); if(a===null) continue;
+      if(hasProjOfView(v,pd)){ c+=projOfView(v,pd); usedProj=true; }
       else if(isRunningMonth(pd)){ continue; }   // ยังไม่รู้วันตัดยอด ตัดออกดีกว่านับครึ่งเดือน
       else c+=a;
-      inc.push(i); p+=(totalOf(periodOf(i,py))||0);
+      inc.push(i); p+=(totalOfView(v,periodOf(i,py))||0);
     }
     const n=inc.length;
     if(n){
       const pct=calcPct(c,p||null), k=dir(pct);
       const range=n>1?(MONTHS_TH[inc[0]]+"–"+MONTHS_TH[inc[n-1]]):MONTHS_TH[inc[0]];
       cards.push({cap:"📅 สะสมทั้งปี "+range,
-        main:fmt(Math.round(c))+" "+UNIT,
+        main:fmt(Math.round(c))+" "+U,
         note:(pct===null?"ไม่มีข้อมูลปีก่อนเทียบ"
           :`ปีก่อนช่วงเดียวกัน ${fmt(p)} · <b style="color:var(--${k==="up"?"up":k==="down"?"down":"flat"})">${fmtPct(pct)}</b>`)
           +(usedProj?` <span style="color:var(--ink-3)">(รวมคาดการณ์ ${s.month})</span>`:"")});
     }
   }
 
-  if(m && curView==="gsx"){
+  if(m && v==="gsx"){
     // ตามที่ตกลง: ตัด Service Non-Repair ออกจากยอด แต่ต้องเห็นว่ามีกี่งาน
     const nr=m.nonRepair||0, cc=m.cancelled||0;
     const bits=[];
@@ -1228,7 +1240,7 @@ function renderMini(){
     cards.push({cap:"🧾 ปริมาณงาน", main:fmt(m.qty)+" ชิ้น", note:m.lines+" รายการสินค้า"});
   }
 
-  document.getElementById("miniGrid").innerHTML=cards.map(c=>
+  document.getElementById(elId).innerHTML=cards.map(c=>
     `<div class="mini"><div class="mini-cap">${c.cap}</div><div class="mini-main">${esc(c.main)}</div><div class="mini-note">${c.note}</div></div>`
   ).join("");
 }
@@ -1236,23 +1248,27 @@ function renderMini(){
 /* =========================================================================
    ภาพรวม — หมวดหมู่แบบแถบนอน (เรียงมาก→น้อย)
    ========================================================================= */
-function renderCatList(){
-  const cur=selMonth, prev=prevPeriodOf(cur);
-  const tCur=totalOf(cur)||0;
-  const proj=hasProjection(cur);
-  document.getElementById("catHint").textContent = monthOf(prev)
+function renderCatList(vw,period,listId,hintId){
+  vw=vw||curView; const cur=period||selMonth;
+  listId=listId||"catList"; hintId=hintId||"catHint";
+  const D=DATA[vw];
+  const prev=prevPeriodOf(cur);
+  const tCur=totalOfView(vw,cur)||0;
+  const proj=hasProjOfView(vw,cur);
+  const hintEl=document.getElementById(hintId);
+  if(hintEl) hintEl.textContent = D.monthly[prev]
     ? ("ตัวเลข % คือ"+(proj?"ยอดคาดการณ์":"")+"เทียบกับ "+prev) : "";
 
-  const rows=CATEGORIES.map(c=>{
-    const v=catOf(cur,c)||0;
+  const rows=D.cats.map(c=>{
+    const v=catOfView(vw,cur,c)||0;
     // เทียบด้วยยอดคาดการณ์ แต่แสดงยอดจริงเป็นตัวหลัก
-    const cmp=proj?projCat(cur,c):v;
-    return {cat:c, v, pj:proj?projCat(cur,c):null,
-            chg:changeChip(cmp, monthOf(prev)?catOf(prev,c):null)};
+    const cmp=proj?projCatOfView(vw,cur,c):v;
+    return {cat:c, v, pj:proj?projCatOfView(vw,cur,c):null,
+            chg:changeChip(cmp, D.monthly[prev]?catOfView(vw,prev,c):null)};
   }).sort((a,b)=>b.v-a.v);
   const max=rows.length?Math.max(...rows.map(r=>r.v),1):1;
 
-  document.getElementById("catList").innerHTML=rows.map(r=>{
+  document.getElementById(listId).innerHTML=rows.map(r=>{
     const share=tCur?(r.v/tCur*100):0;
     return `<div class="catrow ${r.v===0?"zero":""}">
       <div class="nm" title="${esc(r.cat)}"><span class="ic">${ico(r.cat)}</span>${esc(r.cat)}</div>
@@ -1625,6 +1641,30 @@ function renderSummary(){
   });
 
   renderSumInsight();
+  renderSumBlocks();
+}
+
+/* การ์ดย่อย + แถบรายหมวด ของทั้งสองชุด — ใช้ฟังก์ชันเดียวกับหน้าภาพรวม */
+function renderSumBlocks(){
+  const views = hasGsx() ? ["sales","gsx"] : ["sales"];
+  document.getElementById("sumBlocks").innerHTML = views.map(v=>{
+    const D=DATA[v];
+    if(!D.monthly[sumMonth]) return "";
+    return `<div class="sumblock">
+      <div class="sb-head">
+        <h2>${D.icon} ${esc(D.label)}</h2>
+        <span class="hint" id="sumHint-${v}"></span>
+      </div>
+      <div class="mini-grid" id="sumMini-${v}"></div>
+      <div class="panel"><div class="catlist" id="sumCat-${v}"></div></div>
+    </div>`;
+  }).join("");
+
+  views.forEach(v=>{
+    if(!DATA[v].monthly[sumMonth]) return;
+    renderMini(v, sumMonth, "sumMini-"+v);
+    renderCatList(v, sumMonth, "sumCat-"+v, "sumHint-"+v);
+  });
 }
 
 function renderSumInsight(){
