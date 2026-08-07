@@ -660,6 +660,10 @@ function periodOf(i,yy){ return MONTHS_TH[i]+"'"+yy; }
 function splitPeriod(p){ const m=String(p||"").match(/^(.+?)'(\d{2})$/); return m?{month:m[1],yy:m[2],idx:MONTHS_TH.indexOf(m[1])}:null; }
 function prevPeriodOf(p){ const s=splitPeriod(p); if(!s||s.idx<0) return "";
   return s.idx===0?periodOf(11,String(parseInt(s.yy,10)-1).padStart(2,"0")):periodOf(s.idx-1,s.yy); }
+/* คีย์ภายในเป็น ค.ศ. ย่อ (ก.ค.'26) แต่แสดงผลเป็น พ.ศ. เต็ม (ก.ค. 2569)
+   แยกกันไว้เพื่อไม่ให้การเปลี่ยนหน้าตากระทบการค้นข้อมูล */
+function beYear(yy){ return String(2000+parseInt(yy,10)+543); }
+function pLabel(p){ const s=splitPeriod(p); return s ? (s.month+" "+beYear(s.yy)) : (p||""); }
 function lastYearOf(p){ const s=splitPeriod(p); if(!s) return ""; return periodOf(s.idx,String(parseInt(s.yy,10)-1).padStart(2,"0")); }
 function monthOf(p){ return MONTHLY[p]||null; }
 function totalOf(p){ const m=monthOf(p); return m?m.total:null; }
@@ -991,7 +995,7 @@ function buildMonthSelect(){
   if(onSum){ if(!list.includes(sumMonth)) sumMonth=list[0]||""; }
   else     { if(!list.includes(selMonth)) selMonth=list[0]||""; }
   sel.innerHTML=list.map(p=>
-    `<option value="${esc(p)}">${esc(p)}${isRunningMonth(p)?" · กำลังวิ่ง":""}</option>`).join("");
+    `<option value="${esc(p)}">${esc(pLabel(p))}${isRunningMonth(p)?" · กำลังดำเนินอยู่":""}</option>`).join("");
   sel.value = onSum ? sumMonth : selMonth;
   syncDayBox();
 }
@@ -1020,8 +1024,8 @@ function renderHero(){
   // เดือนที่ยังไม่จบ เทียบด้วยยอดคาดการณ์ ไม่ใช่ยอดครึ่งเดือน
   const cmp = proj ? projTotal(cur) : tCur;
 
-  document.getElementById("heroMonth").innerHTML = esc(cur) +
-    (running ? `<span class="runtag">${runDay?("ถึงวันที่ "+runDay+" · "):""}กำลังวิ่ง</span>` : "");
+  document.getElementById("heroMonth").innerHTML = esc(pLabel(cur)) +
+    (running ? `<span class="runtag">${runDay?("ข้อมูลถึงวันที่ "+runDay+" · "):""}กำลังดำเนินอยู่</span>` : "");
   document.getElementById("heroValue").textContent=fmt(tCur);
   document.getElementById("heroUnit").textContent=UNIT;
 
@@ -1109,7 +1113,7 @@ function renderSpark(){
       fill="${lastEst?"var(--card)":col}" stroke="${col}" stroke-width="${lastEst?2:0}"/>
   </svg>
   <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--ink-3);margin-top:4px">
-    <span>${esc(seq.find(x=>x.v!==null).p)}</span><span>${esc(selMonth)}${lastEst?" (คาดการณ์)":""}</span>
+    <span>${esc(pLabel(seq.find(x=>x.v!==null).p))}</span><span>${esc(pLabel(selMonth))}${lastEst?" (คาดการณ์)":""}</span>
   </div>`;
 }
 
@@ -1143,15 +1147,15 @@ function renderInsight(){
   const parts=[];
 
   if(running && proj){
-    parts.push(`<b>${esc(cur)}</b> ${VERB()} <b>${fmt(tCur)} ${UNIT}</b> ใน ${runDay} วันแรก` +
+    parts.push(`<b>${esc(pLabel(cur))}</b> ${VERB()} <b>${fmt(tCur)} ${UNIT}</b> ใน ${runDay} วันแรก` +
       ` · ถ้าไปต่อแบบนี้ทั้งเดือนจะได้ <b>${fmt(Math.round(cmp))} ${UNIT}</b>`);
   }else if(running){
     document.getElementById("insight").innerHTML=
-      `<b>${esc(cur)}</b> ยังไม่จบเดือน ${VERB()}แล้ว <b>${fmt(tCur)} ${UNIT}</b><br>` +
+      `<b>${esc(pLabel(cur))}</b> อยู่ระหว่างเดือน ${VERB()}แล้ว <b>${fmt(tCur)} ${UNIT}</b><br>` +
       `ใส่วันที่ในช่อง <b>“ข้อมูลถึงวันที่”</b> ด้านบน เพื่อให้ระบบคาดการณ์ยอดสิ้นเดือนและเทียบกับเดือนก่อน/ปีก่อนได้`;
     return;
   }else{
-    parts.push(`เดือน <b>${esc(cur)}</b> ${VERB()} <b>${fmt(tCur)} ${UNIT}</b>`);
+    parts.push(`เดือน <b>${esc(pLabel(cur))}</b> ${VERB()} <b>${fmt(tCur)} ${UNIT}</b>`);
   }
 
   const vs = proj ? "คาดการณ์" : "";
@@ -1257,7 +1261,7 @@ function renderCatList(vw,period,listId,hintId){
   const proj=hasProjOfView(vw,cur);
   const hintEl=document.getElementById(hintId);
   if(hintEl) hintEl.textContent = D.monthly[prev]
-    ? ("ตัวเลข % คือ"+(proj?"ยอดคาดการณ์":"")+"เทียบกับ "+prev) : "";
+    ? ("ตัวเลข % คือ"+(proj?"ยอดคาดการณ์":"")+"เทียบกับ "+pLabel(prev)) : "";
 
   const rows=D.cats.map(c=>{
     const v=catOfView(vw,cur,c)||0;
@@ -1358,7 +1362,7 @@ function baseOpts(t,extraTip){
 function renderTrend(){
   const t=theme(), s=splitPeriod(selMonth); if(!s) return;
   const py=String(parseInt(s.yy,10)-1).padStart(2,"0");
-  document.getElementById("trendHint").textContent="20"+s.yy+" เทียบ 20"+py;
+  document.getElementById("trendHint").textContent=beYear(s.yy)+" เทียบ "+beYear(py);
 
   const prev=MONTHS_TH.map((m,i)=>totalOf(periodOf(i,py))||0);
   const cur =MONTHS_TH.map((m,i)=>totalOf(periodOf(i,s.yy))||0);
@@ -1374,8 +1378,8 @@ function renderTrend(){
   if(!ctx) return;
   if(trendChart) trendChart.destroy();
   const ds=[
-    {label:"20"+py,data:prev,backgroundColor:t.prev,borderRadius:5,barPercentage:.9,categoryPercentage:.7,stack:"prev"},
-    {label:"20"+s.yy,data:cur,backgroundColor:t.cur,borderRadius:hasAdd?0:5,barPercentage:.9,categoryPercentage:.7,stack:"cur"}
+    {label:beYear(py),data:prev,backgroundColor:t.prev,borderRadius:5,barPercentage:.9,categoryPercentage:.7,stack:"prev"},
+    {label:beYear(s.yy),data:cur,backgroundColor:t.cur,borderRadius:hasAdd?0:5,barPercentage:.9,categoryPercentage:.7,stack:"cur"}
   ];
   if(hasAdd) ds.push({label:"คาดว่าจะได้เพิ่ม",data:add,backgroundColor:t.cur+"59",
     borderRadius:5,barPercentage:.9,categoryPercentage:.7,stack:"cur"});
@@ -1436,9 +1440,9 @@ function renderCatTable(){
   }
 
   const head=["<th>อันดับ</th>",'<th class="lft">หมวด</th>'];
-  if(hasLY)   head.push(`<th>${esc(ly)}</th>`);
-  if(hasPrev) head.push(`<th>${esc(prev)}</th>`);
-  head.push(`<th>${esc(cur)}${proj?" (ถึงวันที่ "+runDay+")":""}</th>`);
+  if(hasLY)   head.push(`<th>${esc(pLabel(ly))}</th>`);
+  if(hasPrev) head.push(`<th>${esc(pLabel(prev))}</th>`);
+  head.push(`<th>${esc(pLabel(cur))}${proj?" (ถึงวันที่ "+runDay+")":""}</th>`);
   if(proj)    head.push('<th class="pjcol">คาดการณ์สิ้นเดือน</th>');
   if(hasPrev) head.push("<th>ต่างจากเดือนก่อน</th>","<th>%</th>");
   if(hasLY)   head.push("<th>ต่างจากปีก่อน</th>","<th>%</th>");
@@ -1511,7 +1515,7 @@ function renderProdTable(){
 
   wrap.innerHTML=`<table class="prodtbl"><thead><tr>
     <th>อันดับ</th><th class="lft">${curView==="gsx"?"รุ่น":"สินค้า"}</th><th>จำนวน</th>
-    <th>${curView==="gsx"?"งานซ่อม":"ยอดขาย"}</th><th>เทียบ ${esc(prev||"เดือนก่อน")}</th>
+    <th>${curView==="gsx"?"งานซ่อม":"ยอดขาย"}</th><th>เทียบ ${esc(prev?pLabel(prev):"เดือนก่อน")}</th>
   </tr></thead><tbody>${list.map((p,i)=>{
     const pv=monthOf(prev)?(prevMap.has(p.key)?prevMap.get(p.key):0):null;
     const chg=changeChip(km?p.value*km:p.value, pv);
@@ -1535,7 +1539,7 @@ function renderHistTable(){
   const wrap=document.getElementById("histTable");
   const s=splitPeriod(selMonth); if(!s){ wrap.innerHTML=""; return; }
   const py=String(parseInt(s.yy,10)-1).padStart(2,"0");
-  document.getElementById("histHint").textContent="ปี 20"+s.yy;
+  document.getElementById("histHint").textContent="ปี "+beYear(s.yy);
 
   const months=MONTHS_TH.map((m,i)=>periodOf(i,s.yy)).filter(p=>monthOf(p));
   if(!months.length){ wrap.innerHTML='<div class="empty">ไม่มีข้อมูล</div>'; return; }
@@ -1546,7 +1550,7 @@ function renderHistTable(){
     const run=isRunningMonth(p); if(run) anyRunning=true;
     // แถวเดือนที่ยังไม่จบเทียบ YoY ด้วยคาดการณ์ (ถ้ามี) ไม่งั้นเว้นไว้
     const cmp=hasProjection(p)?projTotal(p):(run?null:tot);
-    return `<tr class="${run?"dim":""}"><td>${esc(p)}${run?" *":""}</td>${CATEGORIES.map(c=>`<td>${fmt(catOf(p,c))}</td>`).join("")}
+    return `<tr class="${run?"dim":""}"><td>${esc(pLabel(p))}${run?" *":""}</td>${CATEGORIES.map(c=>`<td>${fmt(catOf(p,c))}</td>`).join("")}
       <td><b>${fmt(tot)}</b></td><td>${fmt(lyv)}</td><td>${cmp===null?'<span class="neu">-</span>':pC(calcPct(cmp,lyv))}</td></tr>`;
   }).join("");
   const tc=CATEGORIES.map(c=>months.reduce((a,p)=>a+(catOf(p,c)||0),0));
@@ -1589,7 +1593,7 @@ function sumCard(v, period){
     ? `<div class="sc-head"><div class="sc-name">${d.icon} ${esc(d.label)}</div>${dayBox}</div>`
     : `<div class="sc-head"><div class="sc-name">${d.icon} ${esc(d.label)}</div></div>`;
 
-  if(!m) return `<div class="sumcard">${head}<div class="sc-none">ยังไม่มีข้อมูลเดือน ${esc(period)}</div></div>`;
+  if(!m) return `<div class="sumcard">${head}<div class="sc-none">ยังไม่มีข้อมูลเดือน ${esc(pLabel(period))}</div></div>`;
 
   const cur=m.total, cmp = proj ? projOfView(v,period) : cur;
   const tPrev=totalOfView(v,prev), tLY=totalOfView(v,ly);
@@ -1692,8 +1696,8 @@ function renderSumInsight(){
   });
   const el=document.getElementById("sumInsight");
   el.innerHTML = bits.length
-    ? `เดือน <b>${esc(p)}</b> · ` + bits.join(" &nbsp;·&nbsp; ")
-    : `ยังไม่มีข้อมูลเดือน ${esc(p)}`;
+    ? `เดือน <b>${esc(pLabel(p))}</b> · ` + bits.join(" &nbsp;·&nbsp; ")
+    : `ยังไม่มีข้อมูลเดือน ${esc(pLabel(p))}`;
 }
 
 /* =========================================================================
@@ -1740,7 +1744,7 @@ function showHealth(){
   const L=["อ่านข้อมูลได้ "+PERIODS.length+" เดือน",""];
   PERIODS.slice().reverse().forEach(p=>{
     const m=monthOf(p);
-    L.push("  "+p+"   "+m.srcTitle+" › "+m.tab+"   "+m.lines+" รายการ   "+fmt(m.total)+" "+UNIT);
+    L.push("  "+pLabel(p)+"   "+m.srcTitle+" › "+m.tab+"   "+m.lines+" รายการ   "+fmt(m.total)+" "+UNIT);
   });
   L.push("");
   if(HEALTH.length){ L.push("ข้อควรดู"); HEALTH.forEach(h=>L.push("  • "+h.src+" › "+h.tab+" — "+h.msg)); }
@@ -1756,9 +1760,9 @@ function exportCSV(){
   const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
   const out=[];
   const proj=hasProjection(cur);
-  out.push(q("สาขา "+CFG.branch+" — สรุป "+cur));
+  out.push(q("สาขา "+CFG.branch+" — สรุป "+pLabel(cur)));
   if(proj) out.push(q("เดือนยังไม่จบ · ข้อมูลถึงวันที่ "+runDay+" จาก "+daysInMonth(cur)+" วัน · %เทียบคำนวณจากยอดคาดการณ์"));
-  out.push(["หมวด",ly+" (ปีก่อน)",prev+" (เดือนก่อน)",cur]
+  out.push(["หมวด",pLabel(ly)+" (ปีก่อน)",pLabel(prev)+" (เดือนก่อน)",pLabel(cur)]
     .concat(proj?["คาดการณ์สิ้นเดือน"]:[])
     .concat(["ต่างจากเดือนก่อน","% MoM","ต่างจากปีก่อน","% YoY"]).map(q).join(","));
   CATEGORIES.forEach(c=>{
@@ -1777,14 +1781,14 @@ function exportCSV(){
 
   const m=monthOf(cur);
   if(m){
-    out.push("", q("รายการสินค้า "+cur));
+    out.push("", q("รายการสินค้า "+pLabel(cur)));
     out.push(["รหัส","ชื่อสินค้า","หมวดที่จัด","Category (Name)","Sub Category","จำนวน","ยอดขาย"].map(q).join(","));
     m.products.slice().sort((a,b)=>b.value-a.value).forEach(p=>
       out.push([q(p.code),q(p.name),q(p.cat),q(p.srcCat),q(p.srcSub),p.qty,p.value].join(",")));
   }
   const blob=new Blob(["﻿"+out.join("\n")],{type:"text/csv;charset=utf-8;"});
   const url=URL.createObjectURL(blob), a=document.createElement("a");
-  a.href=url; a.download=CFG.branch+"_"+cur.replace(/[^\w'ก-๙]/g,"")+".csv"; a.click();
+  a.href=url; a.download=CFG.branch+"_"+pLabel(cur).replace(/[^\wก-๙]/g,"")+".csv"; a.click();
   URL.revokeObjectURL(url);
 }
 
