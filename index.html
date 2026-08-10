@@ -795,24 +795,48 @@ function aggregateTab(text){
    ชีตงานซ่อม: แท็บเดียวทั้งปี ต้องแยกเดือนเองจาก Created Date
    คืนค่าเป็น { "ก.ค.'26": {...}, ... } เพราะหนึ่งแท็บให้หลายเดือน
    ========================================================================= */
+/* หาเดือนของงานซ่อม 1 แถว
+   Created Date เป็นตัวหลัก แต่บางรอบที่ export คอลัมน์นี้ว่าง (เจอ 1,351 จาก 2,309 แถว)
+   เดิมโค้ดข้ามแถวนั้นเงียบๆ ทำให้งานปี 69 หายไป 58%
+   จึงถอยไปใช้ Purchase Order ที่ฝังปี+เดือนไว้ และมีครบทุกแถว
+     260723050374/3074-2305  →  ปี 26 · เดือน 07 · สาขา 2305
+   ตรวจแล้วตรงกับ Created Date 97-99% ในแถวที่มีทั้งคู่ (ที่ต่างคืองานคาบเกี่ยวสิ้นเดือน) */
+function gsxPeriodOf(dateStr, poStr){
+  const dm=String(dateStr||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(dm){
+    const mi=parseInt(dm[1],10)-1;
+    if(mi>=0&&mi<=11) return {mi, yy:dm[3].slice(-2), src:"date"};
+  }
+  const pm=String(poStr||"").trim().match(/^(\d{2})(\d{2})\d{4}/);
+  if(pm){
+    const mi=parseInt(pm[2],10)-1;
+    if(mi>=0&&mi<=11) return {mi, yy:pm[1], src:"po"};
+  }
+  return null;
+}
+
 function aggregateGsx(text, yy){
   const M=parseCSV(text);
   if(M.length<2) return {};
   const H=(M[0]||[]).map(h=>String(h||"").trim());
   const idx={}; Object.keys(GCOL).forEach(k=>idx[k]=H.indexOf(GCOL[k]));
-  if(idx.date===-1 || idx.prod===-1) return {};
+  if(idx.prod===-1 || (idx.date===-1 && idx.po===-1)) return {};
 
   const out={};
+  const stat={rows:0, byDate:0, byPo:0, noPeriod:0, otherYear:0};
   const get=(row,k)=> idx[k]>-1 ? String(row[idx[k]]||"").toUpperCase() : "";
 
   for(let r=1;r<M.length;r++){
     const row=M[r]; if(!row||!row.length) continue;
-    // Created Date รูปแบบ MM/DD/YY HH:MM AM/PM
-    const dm=String(row[idx.date]||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-    if(!dm) continue;
-    const mi=parseInt(dm[1],10)-1, dyy=dm[3].slice(-2);
-    if(mi<0||mi>11) continue;
-    if(yy && dyy!==yy) continue;                 // กันแถวปีอื่นหลุดเข้ามาในไฟล์ปีนี้
+    const hasProd = idx.prod>-1 && String(row[idx.prod]||"").trim();
+    const hasPo   = idx.po>-1   && String(row[idx.po]||"").trim();
+    if(!hasProd && !hasPo) continue;                 // แถวว่างจริง
+    stat.rows++;
+    const w=gsxPeriodOf(idx.date>-1?row[idx.date]:"", idx.po>-1?row[idx.po]:"");
+    if(!w){ stat.noPeriod++; continue; }             // ไม่รู้เดือนจริงๆ — รายงานไว้ ไม่ทิ้งเงียบ
+    if(w.src==="date") stat.byDate++; else stat.byPo++;
+    const mi=w.mi, dyy=w.yy;
+    if(yy && dyy!==yy){ stat.otherYear++; continue; }  // กันแถวปีอื่นหลุดเข้ามาในไฟล์ปีนี้
     const period=periodOf(mi,dyy);
 
     let b=out[period];
@@ -838,6 +862,7 @@ function aggregateGsx(text, yy){
                       cat:mapped, value:1, qty:1,
                       srcCat:String(row[idx.type]||"").trim(), srcSub:status });
   }
+  out.__stat=stat;
   return out;
 }
 
@@ -946,10 +971,21 @@ async function loadAll(fresh){
       continue;
     }
     const buckets=aggregateGsx(r.text, r.src.yy);
+    const st=buckets.__stat; delete buckets.__stat;
+    const srcName=r.src.title||("GSX ปี "+r.src.yy);
+    if(st){
+      // เคยเสียงานไปกว่าครึ่งเพราะข้ามแถวที่ไม่มีวันที่แบบเงียบๆ — ต่อไปนี้ต้องรายงานทุกครั้ง
+      if(st.byPo)      health.push({level:"warn",src:srcName,tab:r.tab,
+        msg:st.byPo+" งานไม่มี Created Date จึงใช้เดือนจาก Purchase Order แทน (จากทั้งหมด "+st.rows+" งาน)"});
+      if(st.noPeriod)  health.push({level:"warn",src:srcName,tab:r.tab,
+        msg:st.noPeriod+" งานหาเดือนไม่ได้เลย ทั้ง Created Date และ Purchase Order ว่าง — ไม่ถูกนับ"});
+      if(st.otherYear) health.push({level:"warn",src:srcName,tab:r.tab,
+        msg:st.otherYear+" งานเป็นของปีอื่น ไม่ใช่ปี "+r.src.yy+" — ไม่ถูกนับในไฟล์นี้"});
+    }
     const keys=Object.keys(buckets);
     if(!keys.length){
       health.push({level:"warn",src:r.src.title||("GSX ปี "+r.src.yy),tab:r.tab,
-        msg:"อ่านไม่ได้ — ไม่พบคอลัมน์ Created Date / Product Name หรือไม่มีแถวของปีนี้"});
+        msg:"อ่านไม่ได้ — ไม่พบคอลัมน์ Product Name / Created Date / Purchase Order หรือไม่มีแถวของปีนี้"});
       continue;
     }
     keys.forEach(p=>{

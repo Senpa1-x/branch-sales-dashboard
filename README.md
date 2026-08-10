@@ -131,9 +131,15 @@ Worker ไปดึงทุกแท็บให้แล้วเก็บ cac
 
 | คอลัมน์ | ใช้ทำอะไร |
 |---|---|
-| `Created Date` | แยกเดือน |
+| `Created Date` | แยกเดือน (ตัวหลัก) |
+| `Purchase Order` | แยกเดือน (ตัวสำรอง) — ฝังปี+เดือนไว้ `26·07·2305·0374` |
 | `Repair Type` · `Product Name` · `Customer Reported/Technician Verified Component Issue` · `Repair Classification` · `Part Number` | รวมเป็นข้อความก้อนเดียวเพื่อแยกหมวด |
 | `Repair Status` | ตัดงานที่ยกเลิกออก |
+
+> ⚠️ **เจอมาแล้ว:** GSX บาง export มี `Created Date` ว่าง (เคยเจอ 1,351 จาก 2,309 แถว)
+> ระบบจะถอยไปอ่านเดือนจาก `Purchase Order` แทน และ**ขึ้นเตือนใน "ตรวจสุขภาพข้อมูล"**
+> ว่าใช้ตัวสำรองกี่งาน · ถ้าหาเดือนไม่ได้ทั้งสองทางก็จะรายงานจำนวนที่ไม่ถูกนับด้วย
+> ไม่ทิ้งแถวเงียบๆ อีก
 
 หน่วยเป็น **จำนวนงาน** ไม่ใช่บาท · หมวด: ACC · Airpods · CPU · iPad · iPhone Battery · iPhone Display · iPhone Other · Watch
 
