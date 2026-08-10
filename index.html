@@ -808,9 +808,9 @@ function aggregateGsx(text, yy){
   for(let r=1;r<M.length;r++){
     const row=M[r]; if(!row||!row.length) continue;
     // Created Date รูปแบบ MM/DD/YY HH:MM AM/PM
-    const dm=String(row[idx.date]||"").trim().match(/^(\d{2})\/(\d{2})\/(\d{2})/);
+    const dm=String(row[idx.date]||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
     if(!dm) continue;
-    const mi=parseInt(dm[1],10)-1, dyy=dm[3];
+    const mi=parseInt(dm[1],10)-1, dyy=dm[3].slice(-2);
     if(mi<0||mi>11) continue;
     if(yy && dyy!==yy) continue;                 // กันแถวปีอื่นหลุดเข้ามาในไฟล์ปีนี้
     const period=periodOf(mi,dyy);
