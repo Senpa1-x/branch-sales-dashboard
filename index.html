@@ -200,6 +200,14 @@ td.shr span:last-child{position:relative}
 [data-theme="dark"] .notice{background:rgba(230,160,0,.1);color:#ffc46b;border-color:rgba(255,193,7,.35)}
 .notice.err{background:var(--down-soft);color:var(--down);border-color:var(--down)}
 .notice code{background:rgba(128,128,128,.18);padding:1px 6px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:.85em}
+/* ปุ่มปิดกล่องเตือน */
+.notice{position:relative;padding-right:46px}
+.notice-x{position:absolute;top:8px;right:9px;width:28px;height:28px;border-radius:8px;border:none;
+  background:transparent;color:inherit;opacity:.45;font-size:1.2rem;line-height:1;cursor:pointer;
+  font-family:var(--font);display:flex;align-items:center;justify-content:center;padding:0}
+.notice-x:hover{opacity:1;background:rgba(128,128,128,.2)}
+.notice-hidden{font-size:.78rem;color:var(--ink-3);margin:-6px 0 18px}
+.notice-hidden a{color:var(--accent);cursor:pointer;text-decoration:underline}
 .notice ul{margin:7px 0 0 19px}
 
 /* ---------- หน้าสรุป ---------- */
@@ -1756,9 +1764,42 @@ function renderEmpty(){
   if(trendChart){ trendChart.destroy(); trendChart=null; }
 }
 
-/* ====== NOTICES ====== */
+/* ====== NOTICES ======
+   กล่องเตือนปิดได้ และจำว่าปิดอันไหนไว้ โดยผูกกับ "เนื้อหา" ของกล่อง
+   ถ้าสถานการณ์เปลี่ยน (เช่นจำนวนงานที่ต้องใช้ตัวสำรองไม่เท่าเดิม) ข้อความจะเปลี่ยน
+   คีย์จึงเปลี่ยนตาม แล้วกล่องจะโผล่มาเตือนใหม่ — ไม่ใช่ปิดแล้วเงียบไปตลอด
+   ส่วนกล่องแดง (โหลดข้อมูลไม่สำเร็จ) ปิดไม่ได้ เพราะตอนนั้นหน้าไม่มีข้อมูลจะแสดง  */
+const DISMISS_KEY="dash-dismissed-v1";
+function dismissedSet(){
+  try{ return new Set(JSON.parse(localStorage.getItem(DISMISS_KEY)||"[]")); }
+  catch(e){ return new Set(); }
+}
+function dismissNotice(k){
+  const s=dismissedSet(); s.add(k);
+  // เก็บแค่ 20 อันล่าสุด กันโตไม่จบ
+  localStorage.setItem(DISMISS_KEY, JSON.stringify([...s].slice(-20)));
+  renderNotices(lastFetchErr);
+}
+function undismissAll(){
+  localStorage.removeItem(DISMISS_KEY);
+  renderNotices(lastFetchErr);
+}
+
+let lastFetchErr=null;
+
 function renderNotices(fetchErr){
+  lastFetchErr=fetchErr||null;
   const el=document.getElementById("notices"), out=[];
+  const done=dismissedSet();
+  let hidden=0;
+
+  // กล่องที่ปิดได้ — ใส่ปุ่ม × และข้ามถ้าเคยปิดไปแล้ว
+  const push=(html)=>{
+    const k="n:"+hashText(html);
+    if(done.has(k)){ hidden++; return; }
+    out.push(`<div class="notice"><button class="notice-x" data-k="${k}" title="ปิดข้อความนี้">×</button>${html}</div>`);
+  };
+
   if(fetchErr){
     const cors=/Failed to fetch|NetworkError|Load failed/i.test(String(fetchErr.message||fetchErr));
     out.push(`<div class="notice err"><b>โหลดข้อมูลไม่สำเร็จ</b> — ${esc(fetchErr.message||fetchErr)}
@@ -1766,15 +1807,20 @@ function renderNotices(fetchErr){
       แก้โดยสั่ง <code>python3 -m http.server 8000</code> ในโฟลเดอร์นี้ แล้วเข้า <code>http://localhost:8000</code>`:""}</div>`);
   }
   if(HEALTH.length){
-    out.push(`<div class="notice"><b>มีข้อควรดูในข้อมูล ${HEALTH.length} รายการ</b>
-      <ul>${HEALTH.map(h=>`<li>${esc(h.src)} › ${esc(h.tab)} — ${esc(h.msg)}</li>`).join("")}</ul></div>`);
+    push(`<b>มีข้อควรดูในข้อมูล ${HEALTH.length} รายการ</b>
+      <ul>${HEALTH.map(h=>`<li>${esc(h.src)} › ${esc(h.tab)} — ${esc(h.msg)}</li>`).join("")}</ul>`);
   }
   if(UNMAPPED.length){
-    out.push(`<div class="notice"><b>มีสินค้าที่ไม่เข้ากฎหมวดไหนเลย จึงถูกจัดเป็น ACC</b><br>
+    push(`<b>มีสินค้าที่ไม่เข้ากฎหมวดไหนเลย จึงถูกจัดเป็น ACC</b><br>
       ${UNMAPPED.map(u=>"<code>"+esc(u)+"</code>").join(" · ")}<br>
-      ถ้าไม่ควรเป็น ACC ให้เพิ่มกฎใน <code>mapCategory()</code></div>`);
+      ถ้าไม่ควรเป็น ACC ให้เพิ่มกฎใน <code>mapCategory()</code>`);
   }
+  if(hidden) out.push(`<div class="notice-hidden">ซ่อนข้อความเตือนไว้ ${hidden} รายการ ·
+    <a id="btnUndismiss">แสดงอีกครั้ง</a></div>`);
+
   el.innerHTML=out.join("");
+  el.querySelectorAll(".notice-x").forEach(b=>b.onclick=()=>dismissNotice(b.dataset.k));
+  const u=el.querySelector("#btnUndismiss"); if(u) u.onclick=undismissAll;
 }
 function showHealth(){
   const L=["อ่านข้อมูลได้ "+PERIODS.length+" เดือน",""];
